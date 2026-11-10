@@ -1,0 +1,17 @@
+{
+  "name": "backrooms-cloud-server",
+  "version": "1.0.0",
+  "description": "后室逃生 · 账号注册登录 + 云存档 + 在线人数统计（MySQL / PostgreSQL 双版本）",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server-pg.js",
+    "start:mysql": "node server.js"
+  },
+  "engines": { "node": ">=16" },
+  "dependencies": {
+    "express": "^4.19.2",
+    "pg": "^8.11.5",
+    "mysql2": "^3.9.7"
+  }
+}

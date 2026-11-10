@@ -1,0 +1,47 @@
+欢迎广大玩家游玩这款游戏。
+游戏围绕wikidot版制作，但略有不同。
+我们的游戏目前有着109个层级，要注意的是这些层当前并不是最终版。在未来我们的游戏还有迎来升级，这些升级包括：重置、重构整个层级，优化剧情、编号或建模。
+以下是当前的层级统计：
+主层级79个：level0,level1,level2,level3,level4,level5,level6,level7,level8,level9,level10,level11,level12,level13,level14,level15,level16,level17,level18,level19,level20,level21,level22,level23,level24,level25,level26,level27,level28,level29,level30,level31,level32,level33,level34,level36,level37,level38,level39,level40,level43,level45,level46,level49,level56,level57,level63,level67,level70,level71,level75,level78,level94,level109,level119,level171,level284,level287,level301,level363,level484,level485,level486,level512,level599,level601,level666,level696,level790,level797,level834,level900,level903,level904,level974,level994,level998,level1000,level9223372036854775807
+子层级24个:
+level0.1,level0.2,level0.3,level0.5,level0.7,level1.1,level1.2,level1.3,level1.5,level2.1,level3.5,level5.1,level5.2,level5.3,level6.1,level6.2,level10.1,level11.3,level15.1,level36.1,level37.1,level49.1,level63.3,level9223372036854775807.-1
+特殊层级1个:
+level !
+隐秘层级5个:
+黯洃銫，尘封的感叹号，蓝色通道，枢纽,破碎之地
+
+未来的计划：
+    我们的游戏虽然已经有着比较完善的层级系统与结局系统，但是一款游戏必须要不断地更新来延长自己的生命周期，否则当玩家体验完内容之后就会离开游戏。
+    因此我们将会不断的更新新的层级和玩法。
+    下个版本预计在下周3前发布。
+    不过考虑到更新攻略信息的时间，我们发布的时间将可能会延迟。
+    这次版本删除了level fun，变成了level26，一是为了迎合wikidot原文，二则是填补浅层级的空白。
+    level 363进入方式不一般，需要你用修改器，或者按Shift+F7打开管理员菜单，再在上面的密钥输入框里输入"go363"进入。
+    以下是详细的1.3.4版本更新内容：
+        level 0.5 - "渊闭疗舍"
+        level 5.1 - "恐怖旅馆赌场盛大开幕"
+        level 16 - "地形转变"
+        level 23 - "石化花园"
+        level 26 - "享乐号汽船"
+        level 32 - "骷髅女皇之森"
+        level 34 - "下水道系统"
+        level 38 - "多叠交点"
+        level 39 - "魔法森林"
+        level 43 - "水世界"
+        level 46 - "阿拉伯沙漠"
+        level 63 - "宁静"
+        level 63.3 - "安眠天堂"
+        level 75 - "阈限"
+        level 363 - "你作弊了"
+        level 797 - "少有人走的路"
+        level 834 - "螺旋螺旋螺旋螺旋"
+        level 903 - "后室地铁"
+        level 904 - "黑暗地铁"
+        以上这些层级质量参差不齐，我也懒得一个一个试玩，AI改一个层级就要十几分钟。如果你发现一个层级可以有更好的做法，可以给我发消息，我会去看。
+        下一个版本，会更新一些浅层级的子层级，还有一些浅层级。同时一些菜单层级也会做。
+        我们……下个版本见吧……
+
+
+
+
+

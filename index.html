@@ -1,0 +1,1638 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23d9c95e'/%3E%3Crect x='8' y='8' width='16' height='16' fill='%230a0a05'/%3E%3C/svg%3E">
+<title>后室 - The Backrooms 逃生</title>
+<link rel="stylesheet" href="css/style.css?v=202">
+<style>
+/* ---------- 加载进度：进游戏的第一个画面，走完才轮到健康忠告 ---------- */
+#loading{position:fixed;inset:0;z-index:100001;
+  /* 不用纯黑：中心透一点后室的昏黄，边上压暗 —— 免得看着像卡死的黑屏 */
+  background:
+    radial-gradient(ellipse 62% 48% at 50% 46%, rgba(217,201,94,.085), transparent 72%),
+    radial-gradient(ellipse 90% 70% at 50% 50%, rgba(60,54,40,.30), transparent 78%),
+    #07060a;
+  display:flex;align-items:center;justify-content:center;
+  font-family:"PingFang SC","Microsoft YaHei","WenQuanYi Micro Hei",system-ui,sans-serif;}
+#loading.gone{display:none}
+.ld-inner{width:min(520px,86vw);display:flex;flex-direction:column;align-items:center;gap:15px;}
+.ld-title{font-size:15px;letter-spacing:.44em;text-indent:.44em;
+  color:rgba(240,226,182,.88);text-shadow:0 2px 14px rgba(0,0,0,.8);}
+.ld-bar{width:100%;height:6px;border-radius:3px;background:rgba(255,255,255,.09);
+  overflow:hidden;position:relative;}
+/* 底噪：一道扫过的高光，主线程被脚本解析占满、进度数字卡住时，
+   至少让玩家看得见画面还活着（动画跑在合成器上，不受主线程阻塞影响）*/
+.ld-bar::after{content:"";position:absolute;inset:0;width:38%;
+  background:linear-gradient(90deg,transparent,rgba(217,201,94,.30),transparent);
+  animation:ldSweep 1.35s linear infinite;}
+@keyframes ldSweep{from{transform:translateX(-100%)}to{transform:translateX(320%)}}
+.ld-bar i{display:block;height:100%;width:0;border-radius:3px;position:relative;z-index:1;
+  background:linear-gradient(90deg,#8a7a3a,#d9c95e);
+  box-shadow:0 0 12px rgba(217,201,94,.5);
+  transition:width .28s ease-out;}
+.ld-row{width:100%;display:flex;align-items:baseline;justify-content:space-between;}
+.ld-pct{font:600 26px/1 ui-monospace,Menlo,Consolas,monospace;color:#d9c95e;}
+.ld-eta{font-size:12px;color:rgba(226,212,164,.62);letter-spacing:.08em;}
+.ld-tip{margin-top:1px;font-size:11px;color:rgba(226,212,164,.42);letter-spacing:.14em;
+  min-height:14px;text-align:center;}
+@media (max-width:520px){
+  .ld-title{font-size:13px;letter-spacing:.34em;text-indent:.34em}
+  .ld-pct{font-size:22px}
+}
+
+/* ---------- 健康游戏忠告：进游戏后的第一个画面 ---------- */
+#health{position:fixed;inset:0;z-index:100000;background:#000;
+  display:flex;align-items:center;justify-content:center;
+  font-family:"PingFang SC","Microsoft YaHei","WenQuanYi Micro Hei",system-ui,sans-serif;
+  /* 6 秒后由 CSS 自己把它淡掉 —— CSS 动画跑在合成器上，即便主线程正忙着
+     解析那 2MB 脚本（手机上要好几秒）它照样准点消失。
+     只靠 JS 的话，倒计时的回调要等主线程空闲才轮得到，忠告就会多挂好几秒。 */
+  animation:hlOut .001s linear 6s forwards;}
+@keyframes hlOut{from{opacity:1;visibility:visible}to{opacity:0;visibility:hidden}}
+#health.gone{display:none}
+/* 加载进度条还没走完时先藏着 —— 倒计时要等它被放出来才开始算 */
+#health.health-wait{display:none}
+.hl-inner{width:min(760px,92vw);display:flex;align-items:center;gap:26px;
+  padding:26px 30px;box-sizing:border-box;}
+.hl-text{flex:1;color:#fff;}
+.hl-title{font-size:19px;letter-spacing:.34em;margin:0 0 14px;font-weight:700;}
+.hl-line{font-size:15px;line-height:2.05;letter-spacing:.06em;margin:0;
+  white-space:nowrap;}
+.hl-side{flex:none;display:flex;flex-direction:column;align-items:center;gap:8px;}
+.hl-side img{display:block;cursor:pointer;image-rendering:auto;
+  max-width:26vw;max-height:30vh;      /* 兜底：JS 没跑到时也不会顶满整屏 */
+  border:1px solid rgba(255,255,255,.28);border-radius:3px;background:#111;}
+.hl-side .hl-cap{font-size:11px;color:rgba(255,255,255,.62);letter-spacing:.12em;
+  text-align:center;cursor:pointer;}
+.hl-side .hl-cap:hover{color:#fff;}
+.hl-count{margin-top:18px;font-size:12px;color:rgba(255,255,255,.5);letter-spacing:.16em;}
+/* 主菜单账号按钮边上的适龄提示（自动缩放到 28%）*/
+.slts-inline{flex:none;display:inline-flex;align-items:center;gap:5px;
+  margin-left:8px;vertical-align:middle;}
+.slts-inline img{display:block;cursor:pointer;}
+.slts-inline .slts-txt{font-size:10px;color:rgba(226,212,164,.7);cursor:pointer;
+  letter-spacing:.08em;white-space:nowrap;}
+.slts-inline .slts-txt:hover{color:#f0e07a;}
+
+/* 开屏：铺满全屏盖住主菜单，折叠结束后整块移除 */
+#opening{position:fixed;inset:0;z-index:99999;background:#07050a;
+  perspective:1400px;overflow:hidden}
+#opening.gone{display:none}
+#op-canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+/* 折叠的两半：各占一半高，里面塞完整截图再裁 */
+.op-half{position:absolute;left:0;width:100%;height:50%;overflow:hidden;
+  transition:transform .80s cubic-bezier(.62,.02,.34,1), opacity .80s ease;
+  backface-visibility:hidden;will-change:transform}
+.op-half img{position:absolute;left:0;width:100%;height:200%;
+  max-width:none;object-fit:fill;display:block}
+.op-top{top:0;transform-origin:top center}
+.op-top img{top:0}
+.op-bot{bottom:0;transform-origin:bottom center}
+.op-bot img{top:-100%}
+/* 从中间向上下分开：上半往上、下半往下，露出中间的主菜单 */
+#opening.folding .op-top{transform:translateY(-100%) rotateX(-34deg)}
+#opening.folding .op-bot{transform:translateY(100%) rotateX(34deg)}
+#opening.folding .op-top,#opening.folding .op-bot{opacity:.14}
+/* 底部提示 */
+#op-tip{position:absolute;left:0;right:0;bottom:7.5%;text-align:center;
+  color:#f0e2b6;font-size:15px;letter-spacing:.24em;opacity:0;
+  pointer-events:none;text-shadow:0 0 20px rgba(255,196,80,.55);
+  transition:opacity .9s ease}
+#op-tip.on{animation:opBreath 2.8s ease-in-out infinite}
+@keyframes opBreath{0%,100%{opacity:.58}50%{opacity:.98}}
+@media (max-width:520px){ #op-tip{font-size:12px;letter-spacing:.16em} }
+.slts-box{max-width:560px}
+.slts-body p{margin:0 0 10px;font-size:12px;line-height:1.85;color:#d8cf9a;}
+.mapv-box{max-width:820px}
+.mapv-wrap{display:flex;align-items:center;justify-content:center;
+  background:#0b0d0a;border:1px solid rgba(217,201,94,.18);border-radius:8px;padding:8px;overflow:auto;}
+#mapv-cv{display:block;image-rendering:pixelated;max-width:100%;height:auto;}
+.mapv-bar{display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap;}
+.mapv-info{font-size:11px;color:#8a7a5a;}
+.mapv-sp{flex:1}
+.mapv-floor{font-size:12px;color:#d9c95e;font-family:monospace;min-width:46px;text-align:center;}
+.mapv-legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;font-size:11px;color:#8a7a5a;}
+.mapv-legend span{display:inline-flex;align-items:center;gap:4px;}
+.mapv-legend i{width:10px;height:10px;border-radius:2px;display:inline-block;border:1px solid rgba(255,255,255,.18);}
+/* 手机：拾取 / 阅读 竖排（拾取在上）*/
+#btn-col{display:flex;flex-direction:column;gap:6px;align-items:center;flex:none;}
+#btn-pick{width:56px;height:56px;font-size:13px;}
+#btn-pick.ready{opacity:1;color:#d8ffe0;border-color:rgba(140,255,170,.95);
+  background:rgba(120,255,160,.22);animation:ePulse 1.1s ease-in-out infinite;}
+/* 手机「上浮」：沉进水里才出来 —— 只有真的在水下才亮 */
+#btn-up{width:60px;height:60px;font-size:14px;}
+#btn-up.ready{opacity:1;color:#d0e8ff;border-color:rgba(150,210,255,.95);
+  background:rgba(90,180,255,.24);animation:ePulse 0.9s ease-in-out infinite;}
+/* HUD 收起：只留暂停 */
+.hud-right.hud-collapsed > *:not(#pause-btn):not(#hud-more-btn){display:none !important}
+#hud-more-btn{font-size:15px;line-height:1;padding:4px 8px;letter-spacing:0;}
+.hud-right.hud-collapsed #hud-more-btn{opacity:.75}
+/* 手机按键位置调整模式 */
+body.touch-adjust .tbtn{outline:2px dashed rgba(255,233,122,.9);outline-offset:2px;cursor:move}
+#touch-adjust-bar{position:fixed;left:50%;bottom:8px;transform:translateX(-50%);z-index:200000;
+  display:none;gap:8px;align-items:center;padding:8px 12px;border-radius:10px;
+  background:rgba(10,12,8,.94);border:1px solid rgba(255,233,122,.4);font-size:12px;color:#e8dd9a;}
+body.touch-adjust #touch-adjust-bar{display:flex}
+/* 键位设置 */
+.km-box{max-width:560px}
+.km-act{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(217,201,94,.12);}
+.km-act .km-nm{flex:1;font-size:12px;color:#d8cfae;}
+.km-act .km-key{font-family:monospace;font-size:11px;color:#f0e07a;background:rgba(217,201,94,.12);
+  border:1px solid rgba(217,201,94,.3);border-radius:4px;padding:2px 7px;}
+.km-act button{font-size:11px;padding:3px 9px;}
+.km-act.waiting .km-key{background:rgba(255,120,90,.22);border-color:rgba(255,120,90,.6);color:#ffd0c0;}
+.km-hint{font-size:11px;color:#8a7a5a;margin-top:8px;}
+.rank-link{
+  margin-top:4px;align-self:flex-start;
+  background:none;border:1px solid rgba(217,201,94,.32);border-radius:6px;
+  padding:3px 10px;font:12px inherit;color:rgba(226,212,164,.9);cursor:pointer;
+}
+.rank-link:hover{border-color:#d9c95e;color:#f0e07a;}
+.rank-box{max-width:560px}
+.rank-tip{margin:0 0 10px;font-size:11px;line-height:1.7;color:#8a7a5a;}
+.rank-body{max-height:min(52vh,360px);overflow:auto;border:1px solid rgba(217,201,94,.16);border-radius:8px;}
+.rank-empty{padding:16px;font-size:12px;color:#8a7a5a;text-align:center;}
+.rank-row{display:flex;align-items:center;gap:8px;padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.05);font-size:12px;}
+.rank-row:last-child{border-bottom:none;}
+.rank-no{width:26px;color:#8a7a5a;font:11px monospace;}
+.rank-lv{flex:1;color:#e2d8b4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.rank-bar{width:96px;height:7px;border-radius:4px;background:rgba(255,255,255,.08);overflow:hidden;flex:none;}
+.rank-bar i{display:block;height:100%;background:linear-gradient(90deg,#8a7a3a,#d9c95e);}
+.rank-pct{width:52px;text-align:right;color:#d9c95e;font:12px monospace;}
+.rank-num{width:78px;text-align:right;color:#8a7a5a;font:11px monospace;}
+#rec-ind{position:fixed;left:50%;top:74px;transform:translateX(-50%);z-index:45;
+  padding:7px 16px;border-radius:20px;pointer-events:none;font:700 14px/1.2 monospace;
+  letter-spacing:2px;color:#ff8b7a;background:rgba(24,10,8,.90);
+  border:1px solid rgba(255,120,100,.75);box-shadow:0 0 18px rgba(255,80,60,.35);
+  white-space:nowrap;}
+#rec-ind #rec-time{color:#ffd9b0;font-weight:600;letter-spacing:1px;}
+#rec-ind.ending{color:#ffe97a;border-color:#d9c95e;background:rgba(30,24,8,.92);
+  box-shadow:0 0 18px rgba(255,220,80,.35);}
+.rank-foot{display:flex;align-items:center;gap:10px;margin-top:10px;}
+.rank-state{flex:1;font-size:11px;color:#8a7a5a;}
+.menu-gamename{
+  margin-top:2px;font-size:13px;letter-spacing:.30em;
+  color:rgba(240,226,182,.82);text-shadow:0 2px 12px rgba(0,0,0,.85);
+  white-space:nowrap;
+}
+/* ================= 1.3.4 · 更新日志：整屏大面板 ================= */
+/* 面板居中；里面的文字仍然左对齐 */
+#verlog.overlay{ justify-content:center; }
+.verlog-box{
+  width:min(1080px,94vw); height:min(88vh,760px); height:min(88dvh,760px);
+  max-width:none; max-height:none; display:flex; flex-direction:column;
+  padding:0; overflow:hidden;
+  /* 面板半透，主菜单那张背景图从后面透出来，不把玩家的图整个盖掉 */
+  background:rgba(46,38,18,.42) !important;
+  border:2px solid rgba(217,201,94,.62);
+  box-shadow:0 0 60px rgba(255,220,80,.20), inset 0 0 40px rgba(0,0,0,.22);
+}
+html.glass-ok .verlog-box{ backdrop-filter:blur(9px) saturate(1.2); -webkit-backdrop-filter:blur(9px) saturate(1.2); }
+html.no-glass .verlog-box{ background:rgba(46,38,18,.80) !important; }
+.verlog-scroll{
+  flex:1 1 auto; min-height:0; overflow-y:auto;
+  scroll-behavior:smooth; overscroll-behavior:contain; -webkit-overflow-scrolling:touch;
+}
+.verlog-sec{ min-height:100%; box-sizing:border-box;
+  padding:clamp(18px,4.2vh,54px) clamp(18px,4.5vw,64px) clamp(18px,4.2vh,54px) clamp(12px,2vw,28px); }
+.verlog-now{ display:flex; flex-direction:column; justify-content:center; align-items:flex-start; text-align:left; }
+.verlog-ver{
+  font-size:clamp(52px,9vw,112px); font-weight:800; line-height:1; letter-spacing:.05em;
+  color:#ffe97a; text-shadow:0 0 18px rgba(255,233,122,.55), 0 0 54px rgba(255,220,80,.22);
+}
+.verlog-tag{
+  margin-top:12px; font-size:clamp(12px,1.6vw,16px); letter-spacing:.55em;
+  color:#c9b25f; text-shadow:0 0 12px rgba(255,233,122,.35);
+}
+.verlog-items{ margin-top:clamp(18px,4vh,44px); display:flex; flex-direction:column; align-items:flex-start; gap:clamp(9px,1.8vh,20px); }
+.verlog-item{
+  font-size:clamp(13px,1.7vw,20px); line-height:1.5; letter-spacing:.05em;
+  color:#f2e7bd; text-shadow:0 0 10px rgba(255,233,122,.45);
+}
+.verlog-old{ min-height:auto; border-top:1px dashed rgba(217,201,94,.30); padding-top:14px;
+  padding-left:clamp(12px,2vw,28px); text-align:left; }
+.verlog-hist-head{ text-align:left; }
+.verlog-hist-block{ max-width:760px; margin-left:0; margin-right:auto; text-align:left; }
+.verlog-jump{
+  position:sticky; top:0; z-index:2; display:block; margin:0 0 26px; padding:10px 20px;
+  font-size:calc(14px * var(--ui-zoom,1)); letter-spacing:2px; font-family:inherit;
+  color:#1d1808; background:#d9c95e; border:1px solid #ffe97a; border-radius:6px;
+  cursor:pointer; text-shadow:none; box-shadow:0 0 18px rgba(255,220,80,.28);
+}
+.verlog-jump:hover{ background:#ffe97a; }
+.verlog-hist-head{
+  font-size:clamp(22px,3.2vw,38px); color:#ffe97a; letter-spacing:.12em; margin-bottom:24px;
+  text-shadow:0 0 16px rgba(255,233,122,.45);
+}
+.verlog-hist-block{ margin-bottom:30px; }
+.verlog-hist-ver{
+  font-size:clamp(20px,2.8vw,34px); color:#ffe97a; letter-spacing:.08em;
+  text-shadow:0 0 14px rgba(255,233,122,.4);
+}
+.verlog-hist-items{ margin-top:10px; display:flex; flex-direction:column; gap:7px; }
+.verlog-hist-item{
+  font-size:clamp(12px,1.5vw,16px); line-height:1.5; color:#d8cca4;
+  text-shadow:0 0 9px rgba(255,233,122,.22);
+}
+.verlog-foot{
+  flex:none; display:flex; gap:10px; justify-content:flex-start; align-items:center;
+  padding:12px 12px 12px clamp(12px,2vw,28px); border-top:1px solid rgba(217,201,94,.22); background:rgba(10,9,5,.42);
+}
+.verlog-foot button{ pointer-events:auto; touch-action:manipulation; }
+.verlog-empty{ color:#8a7a5a; font-size:13px; padding:24px; text-shadow:0 0 8px rgba(255,233,122,.2); }
+/* 横屏手机这类矮屏：四条更新也要完整落在首屏，别让第 4 条被挤出可视区 */
+@media (max-height:480px){
+  .verlog-sec{ padding-top:10px; padding-bottom:10px; }
+  .verlog-ver{ font-size:clamp(40px,7vw,58px); }
+  .verlog-tag{ margin-top:6px; font-size:11px; letter-spacing:.35em; }
+  .verlog-items{ margin-top:10px; gap:5px; }
+  .verlog-item{ font-size:clamp(11px,1.5vw,14px); line-height:1.35; }
+  .verlog-foot{ padding:7px 10px; }
+}
+
+/* 滚动条只在真正能滚的内容区出现；其余面板一律不冒出"看得见却划不了"的条 */
+html, body { overscroll-behavior: none; scrollbar-width: none; }
+*, *::before, *::after { scrollbar-width: none; }
+::-webkit-scrollbar { width: 0; height: 0; display: none; }
+.verlog-scroll, #archive-body, .ann-body, #term-log, .guide-fallback,
+.manual-body, .doc-body, .bag-body, .slts-box {
+  scrollbar-width: thin; scrollbar-color: #d9c95e rgba(0,0,0,.35);
+}
+.verlog-scroll::-webkit-scrollbar, #archive-body::-webkit-scrollbar,
+.ann-body::-webkit-scrollbar, #term-log::-webkit-scrollbar,
+.guide-fallback::-webkit-scrollbar, .slts-box::-webkit-scrollbar {
+  width: 8px; height: 8px; display: block;
+}
+.verlog-scroll::-webkit-scrollbar-track, #archive-body::-webkit-scrollbar-track,
+.slts-box::-webkit-scrollbar-track { background: rgba(0,0,0,.35); border-radius: 4px; }
+.verlog-scroll::-webkit-scrollbar-thumb, #archive-body::-webkit-scrollbar-thumb,
+.ann-body::-webkit-scrollbar-thumb, #term-log::-webkit-scrollbar-thumb,
+.guide-fallback::-webkit-scrollbar-thumb, .slts-box::-webkit-scrollbar-thumb {
+  background: #d9c95e; border-radius: 4px;
+}
+.verlog-scroll::-webkit-scrollbar-thumb:hover { background: #f0e07a; }
+</style>
+</head>
+<body>
+<!-- 加载进度：进游戏的第一个画面 —— 走完了才轮到下面的健康忠告。
+     必须内联在 body 最前面：HTML 一解析到就显示，不等那 1MB 脚本下载完。 -->
+<div id="loading">
+  <div class="ld-inner">
+    <div class="ld-title">后室</div>
+    <div class="ld-bar"><i id="ld-fill"></i></div>
+    <div class="ld-row">
+      <span class="ld-pct" id="ld-pct">0%</span>
+      <span class="ld-eta" id="ld-eta">正在估算…</span>
+    </div>
+    <div class="ld-tip" id="ld-tip">正在载入…</div>
+  </div>
+</div>
+<script>
+/* 加载进度条：内联在这里，不等任何外部脚本。
+   115 个脚本是顺序阻塞下载的，主线程这会儿正忙着解析它们 —— 所以
+   进度条的更新只在脚本之间的空隙里跑，看着是一跳一跳的，这是正常的；
+   剩余时间一律用真实时间戳推算，不靠"每秒减一"，主线程卡多久都不会把等待拖长。 */
+(function () {
+  var L = document.getElementById('loading');
+  window.__loadingActive = !!L;
+  if (!L) { if (window.__healthStart) window.__healthStart(); return; }
+
+  /* 脚本总数（index.html 里带 src 的 <script> 数量）。
+     只影响进度的手感：偏小会提前走到 97%，偏大会走得慢 —— 两种情况下
+     真正的"完成"都只看 window.__gameReady，不会假完成也不会卡死。 */
+  var EXPECT = 113;
+
+  var fill = document.getElementById('ld-fill');
+  var pctEl = document.getElementById('ld-pct');
+  var etaEl = document.getElementById('ld-eta');
+  var tipEl = document.getElementById('ld-tip');
+
+  var t0 = Date.now();
+  var shown = 0;        // 已展示的进度，只增不减
+  var eta = -1;         // 平滑后的剩余秒数
+  var rate = -1;        // 最近的进度速度（每秒）
+  var rateN = 0;        // 有效的速度采样次数
+  var lastT = -1, lastP = 0;
+  var done = false;
+
+  function loadedCount() {
+    var n = 0;
+    try {
+      var rs = performance.getEntriesByType('resource');
+      for (var i = 0; i < rs.length; i++) {
+        var e = rs[i];
+        if (e.initiatorType === 'script' || /\.js(\?|$)/.test(e.name)) n++;
+      }
+    } catch (err) { /* 老浏览器没有 resource timing */ }
+    // 兜底：脚本是顺序阻塞的，解析到哪个就说明前面的都执行完了
+    var m = 0;
+    try {
+      var ss = document.scripts;
+      for (var j = 0; j < ss.length; j++) if (ss[j].src) m++;
+    } catch (err) { /* 忽略 */ }
+    return Math.max(n, m);
+  }
+
+  // EXPECT 是写死的，加了新层级忘了同步就会偏小、进度提前跑满。
+  // DOM 一解析完就能数出真实总数，这时校正一下分母（只调大，不调小）。
+  function fixExpect() {
+    try {
+      if (document.readyState === 'loading') return;
+      var real = document.querySelectorAll('script[src]').length;
+      if (real > EXPECT) EXPECT = real;
+    } catch (err) { /* 忽略 */ }
+  }
+
+  function fmtEta(s) {
+    if (s < 0) return '正在估算…';
+    if (s < 0.6) return '即将完成';
+    if (s < 60) return '预计还需 ' + s.toFixed(1) + ' 秒';
+    var m = Math.floor(s / 60), r = Math.round(s % 60);
+    return '预计还需 ' + m + ' 分 ' + (r < 10 ? '0' : '') + r + ' 秒';
+  }
+
+  function tipOf(p) {
+    if (p >= 0.999) return '完成';
+    if (p > 0.88) return '正在初始化…';
+    if (p > 0.62) return '正在载入音效与界面';
+    if (p > 0.28) return '正在载入实体与物品';
+    return '正在载入层级数据';
+  }
+
+  function paint() {
+    fixExpect();
+    var p = Math.min(0.97, loadedCount() / EXPECT);
+    if (window.__gameReady) p = 1;
+    if (p < shown) p = shown; else shown = p;
+
+    var el = Date.now() - t0;
+    // 剩余时间按"最近这段的进度速度"推算，不是按全局平均 ——
+    // 浏览器有预加载扫描器，开局那一批脚本几乎是同时到货的，用平均速度
+    // 会把剩余时间算成 0.4 秒，刚开局就写"即将完成"，明显是骗人。
+    if (lastT >= 0 && p > lastP) {
+      var dt = (el - lastT) / 1000, dp = p - lastP;
+      if (dt > 0.04 && dp > 0) {
+        var r = dp / dt;
+        rate = rate < 0 ? r : rate * 0.62 + r * 0.38;
+        rateN++;
+      }
+    }
+    lastT = el; lastP = p;
+    if (p >= 0.999) eta = 0;
+    else if (rateN >= 2 && rate > 0) eta = (1 - p) / rate;   // 头两次采样不估算
+    // 进度条上限是 97%，剩下的 3% 在等 main.js 收尾 —— 这会儿推算出来的
+    // 剩余时间接近 0，再显示"即将完成"就是骗人（可能还要等好几秒）
+    var tail = (p >= 0.97 && !window.__gameReady);
+
+    if (fill) fill.style.width = (p * 100).toFixed(1) + '%';
+    if (pctEl) pctEl.textContent = Math.floor(p * 100) + '%';
+    if (etaEl) etaEl.textContent = tail ? '正在收尾…' : fmtEta(eta);
+    if (tipEl) tipEl.textContent = tail ? '正在初始化…' : tipOf(p);
+    return p;
+  }
+
+  function finish() {
+    if (done) return;
+    done = true;
+    window.__loadingActive = false;
+    paint();
+    // 忠告画面先就位（在下面盖着），再让进度条淡出 —— 中间不会露出黑屏空档
+    if (window.__healthStart) window.__healthStart();
+    try {
+      L.style.transition = 'opacity .34s ease';
+      L.style.opacity = '0';
+    } catch (err) { /* 忽略 */ }
+    setTimeout(function () {
+      L.classList.add('gone');
+      if (L.parentNode) L.parentNode.removeChild(L);
+    }, 360);
+  }
+
+  // 完成信号由 main.js 末尾直接调（不等轮询，round 一次就到位）；
+  // 这里的轮询只是它没调到时的兜底。
+  window.__loadFinish = finish;
+  if (window.__gameReady) finish();   // 极快缓存下 main.js 已经跑完了
+
+  paint();
+  var iv = setInterval(function () {
+    if (done) { clearInterval(iv); return; }
+    paint();
+    // 真正的完成信号由 main.js 末尾给出 —— 那时所有层级、界面都初始化好了
+    if (window.__gameReady) { clearInterval(iv); finish(); }
+  }, 120);
+
+  // 兜底一：所有脚本都跑完（load 事件）后再等 2.5 秒，无论如何放行
+  addEventListener('load', function () {
+    setTimeout(function () { if (!done) { clearInterval(iv); } }, 2500);
+    setTimeout(function () { if (!done) { paint(); finish(); } }, 3000);
+  });
+  // 兜底二：绝对超时 —— 网再慢也不能把玩家锁在进度条上
+  setTimeout(function () { if (!done) { clearInterval(iv); finish(); } }, 30000);
+})();
+</script>
+
+<!-- 健康游戏忠告：进游戏后的第一个画面，黑底白字。
+     默认藏着（health-wait），等加载进度走完由 __healthStart() 放出来，
+     倒计时也从那一刻才开始算，不是从 HTML 解析完就算。 -->
+<div id="health" class="health-wait">
+  <div class="hl-inner">
+    <div class="hl-text">
+      <p class="hl-title">健康游戏忠告</p>
+      <p class="hl-line">抵制不良游戏，拒绝盗版游戏。</p>
+      <p class="hl-line">注意自我保护，谨防受骗上当。</p>
+      <p class="hl-line">适度游戏益脑，沉迷游戏伤身。</p>
+      <p class="hl-line">合理安排时间，享受健康生活。</p>
+      <div class="hl-count" id="hl-count"></div>
+    </div>
+    <div class="hl-side">
+      <img id="hl-slts" src="img/slts.png" alt="适龄提示">
+      <div class="hl-cap" id="hl-slts-cap">适龄提示</div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* 忠告画面的倒计时必须内联在这里，不能放在 main.js 里。
+   main.js 有 1MB、110 多个脚本里倒数第二个才轮到它 —— 在手机上或网速一般时，
+   它要等好几秒才下载完并执行。忠告画面是内联 HTML，以前 HTML 一解析完就显示了，
+   于是玩家看见一块黑屏忠告：没有倒计时、点了也没反应，看上去像卡死了。
+   现在前面多了加载进度条，所以这里改成"等着被调用"：
+   加载条走完 → __healthStart() → 忠告露出来，倒计时从那一刻才开始算。 */
+(function () {
+  var h = document.getElementById('health');
+  var c = document.getElementById('hl-count');
+  window.__healthInline = true;      // 告诉 main.js：别再自己起一个倒计时
+  window.__healthOpen = false;       // 还没露出来
+  window.__healthStarted = false;
+  if (!h) return;
+
+  var LOCK = 3000, TOTAL = 6000;     // 前 3 秒不能跳过，之后可点击，6 秒自动进
+  var t0 = 0, done = false, iv = 0;
+
+  // 用真实时间戳算剩余，不用"每秒减一"—— 主线程被卡住时不会把等待拖长
+  function paint() {
+    if (!c) return;
+    var el = Date.now() - t0;
+    var left = Math.max(0, Math.ceil((TOTAL - el) / 1000));
+    c.textContent = el >= LOCK
+      ? left + " 秒后自动进入 · 点击任意处跳过"
+      : left + " 秒后才能跳过";
+  }
+  function gone() {
+    if (done) return;
+    done = true;
+    if (iv) clearInterval(iv);
+    h.classList.add('gone');
+    window.__healthOpen = false;
+  }
+  h.addEventListener('click', function (e) {
+    // 点在适龄提示上：那是打开适龄说明的，不算跳过
+    var id = e.target && e.target.id;
+    if (id === 'hl-slts' || id === 'hl-slts-cap') return;
+    if (!window.__healthStarted || Date.now() - t0 < LOCK) return;
+    gone();
+  });
+
+  window.__healthStart = function () {
+    if (window.__healthStarted) return;
+    window.__healthStarted = true;
+    h.classList.remove('health-wait');
+    window.__healthOpen = true;
+    t0 = Date.now();
+    paint();
+    iv = setInterval(function () {
+      if (Date.now() - t0 >= TOTAL) { gone(); return; }
+      paint();
+    }, 200);
+    setTimeout(gone, TOTAL + 4000);         // 兜底
+  };
+
+  // 没有加载进度条（老缓存的 html）时自己直接开始，别把玩家晾在黑屏上
+  if (!window.__loadingActive) window.__healthStart();
+  // 兜底：加载条那边万一没调用到（脚本报错 / 被超时清掉了），2 秒后自己放行。
+  // 但加载条还挂在页面上时绝不能自己抢跑 —— 那样倒计时会在幕后偷偷走掉，
+  // 等进度条淡出，玩家看到的忠告只剩两三秒，甚至已经自己关掉了。
+  setTimeout(function () {
+    if (window.__healthStarted) return;
+    var L = document.getElementById('loading');
+    if (L && !L.classList.contains('gone')) return;   // 还在加载，继续等
+    window.__healthStart();
+  }, 2000);
+})();
+</script>
+
+<!-- 适龄说明：点击适龄提示图片后弹出 -->
+<div id="slts" class="overlay hidden">
+  <div class="panel slts-box">
+    <div class="panel-head"><span>适龄说明</span>
+      <button id="slts-close" class="ghost" type="button">关闭</button></div>
+    <div class="acc-box">
+      <div class="slts-body">
+        <p>本游戏的适龄提示标识见画面中的图片。该标识依据中国音像与数字出版协会《游戏适龄提示规范》评定，综合考虑了游戏的内容、玩法、视听表现与社交属性。</p>
+        <p>年龄未达到标识要求的玩家，请在监护人指导下使用。</p>
+        <p>本游戏含有黑暗环境、突发惊吓音效与实体追逐情节，可能对部分玩家造成不适；如感到不适请立即停止游戏。</p>
+        <p>请合理安排游戏时间，注意休息，享受健康生活。</p>
+      </div>
+      <div class="ai-foot"><button id="slts-ok" class="primary">我知道了</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- 开屏动画：盖在最上面，折叠完自动移除 -->
+<div id="opening">
+  <canvas id="op-canvas"></canvas>
+  <div id="op-tip">点击任意区域开始游戏</div>
+</div>
+<canvas id="game"></canvas>
+
+<!-- 悲尸循环倒计时 -->
+<div id="wretch-timer" class="hidden">
+  <div class="wt-inner">悲尸循环 · <b id="wt-num">45</b> 秒内喝下杏仁水</div>
+</div>
+
+<!-- HUD -->
+<div id="hud" class="hidden">
+  <div class="hud-left">
+    <div id="level-label">LEVEL 0</div>
+    <div id="objective">闪烁的墙壁，或推开木门进深坑区</div>
+    <!-- 生命 / 理智 -->
+    <div id="vitals">
+      <div class="vital">
+        <span class="vlabel">生命</span>
+        <div class="vbar"><div id="hp-fill"></div></div>
+        <span class="vnum" id="hp-num">100</span>
+      </div>
+      <div class="vital">
+        <span class="vlabel">理智</span>
+        <div class="vbar"><div id="san-fill"></div></div>
+        <span class="vnum" id="san-num">100</span>
+      </div>
+      <div id="bad-stacks" class="hidden"></div>
+    </div>
+    <!-- 左下角：帧率与延迟（很小，不喧宾夺主） -->
+    <div id="perf" class="hidden">—</div>
+  </div>
+  <div class="hud-right">
+    <div id="flashlight-label" title="手电筒 (F)">手电：关</div>
+    <div id="archive-label" title="收集到的日志档案">档案 0/15</div>
+    <div id="entities-label">实体：0</div>
+    <div id="time-label">00:00</div>
+    <button id="ai-btn" class="hidden" title="AI 权重设置">AI 设置</button>
+    <span id="ai-tag" class="hidden">AI 接管中</span>
+    <button id="hud-more-btn" title="收起 / 展开上方按钮">⋯</button>
+    <button id="bag-btn" title="背包 (Tab)">背包</button>
+    <button id="manual-btn" title="档案手册 (H)">档案手册</button>
+    <button id="mute-btn" title="静音 (M)">静音</button>
+    <button id="hud-set-btn" title="设置">设置</button>
+    <button id="pause-btn" title="暂停 (Esc)">暂停</button>
+  </div>
+</div>
+
+<div id="stamina-bar" class="hidden"><div id="stamina-fill"></div></div>
+
+<!-- 潜水信息（Level 7：深海恐惧症） -->
+<div id="dive" class="hidden">
+  <div class="dive-row"><span>深度</span><b id="dive-depth">0 m</b></div>
+  <div class="dive-row"><span>区域</span><b id="dive-zone">日光带</b></div>
+  <div class="dive-row"><span>闭气</span><b id="dive-air">100%</b></div>
+</div>
+
+<!-- 移动端触控（自动识别设备，键盘设备自动隐藏） -->
+<div id="touch-ui" class="hidden">
+  <div id="stick-zone"></div>
+  <!-- 摇杆画在 touch-ui 下并用 fixed 定位：left/top 直接用 clientX/clientY，
+       才能正好长在手指按下的位置（放在 stick-zone 里会按区域左上角偏移） -->
+  <div id="stick-base"><div id="stick-knob"></div></div>
+  <div id="touch-btns">
+    <button id="btn-door" class="tbtn hidden">开门</button>
+    <button id="btn-sprint" class="tbtn">冲刺</button>
+    <button id="btn-fl" class="tbtn">手电</button>
+    <button id="btn-act" class="tbtn hidden">交互</button>
+    <button id="btn-up" class="tbtn hidden">上浮</button>
+    <div id="btn-col">
+      <button id="btn-pick" class="tbtn hidden">拾取</button>
+      <button id="btn-e" class="tbtn">阅读</button>
+    </div>
+    <button id="btn-bag" class="tbtn">背包</button>
+  </div>
+</div>
+
+<!-- 竖屏提示（仅触屏设备） -->
+<div id="rotate-hint">横屏握持，体验更佳</div>
+
+<!-- 联机：右上角提示（XXX 被 XX 吃了） -->
+<div id="mp-notice" class="mp-notice hidden"></div>
+<!-- 屏幕下方的三个主物品槽（键盘 1 / 2 / 3，手机直接点） -->
+<div id="hotbar" class="hidden">
+  <div class="hot-slot" data-slot="0"><span class="hot-key">1</span><span class="hot-ic"></span><span class="hot-nm"></span></div>
+  <div class="hot-slot" data-slot="1"><span class="hot-key">2</span><span class="hot-ic"></span><span class="hot-nm"></span></div>
+  <div class="hot-slot" data-slot="2"><span class="hot-key">3</span><span class="hot-ic"></span><span class="hot-nm"></span></div>
+</div>
+
+<!-- 副手槽：单独一格，与三个主槽平级。默认键 4；只有副手是摄像机时角标变 L（录像） -->
+<div id="offslot" class="hot-slot off-slot hidden">
+  <span class="hot-key off-key">4</span><span class="hot-ic"></span><span class="hot-nm"></span>
+  <span class="off-cap">副手</span>
+</div>
+
+<!-- 拾取提示 -->
+<div id="pickup-hint" class="hidden">按 <b>E</b> 阅读档案</div>
+
+<!-- 门交互提示 -->
+<div id="door-hint" class="hidden">按 <b>R</b> 开门</div>
+
+<!-- 手电筒提示 -->
+<div id="flash-toast" class="hidden">按 <b>F</b> 打开手电筒</div>
+
+<!-- 档案手册（快捷键 H）：收集到的档案都会存进来，可随时翻阅 -->
+<!-- 背包（快捷键 Tab）：杏仁水 / 污染杏仁水 / 撬棍 -->
+<div id="bag" class="overlay hidden">
+  <div class="panel bag">
+    <div class="doc-head">
+      <span>背包</span>
+      <span id="bag-hint">点击物品使用</span>
+    </div>
+    <div class="bag-body">
+      <!-- 左边：快捷键设定（1 / 2 / 3） -->
+      <div class="bag-side">
+        <div class="bag-side-title">主物品槽</div>
+        <div id="bag-hot"></div>
+        <div class="bag-tip near">先点右边一个格子，再点这里要放的槽位；点已放的槽位可以取下。</div>
+        <div class="bag-side-title">副手槽（4）</div>
+        <div id="bag-off"></div>
+        <div class="bag-tip near">单独一格，默认按 4 使用；开局自带摄像机，这时按 L 才是录像。选中右边的物品再点这里可换上别的，点已装的物品可卸回背包。</div>
+      </div>
+      <!-- 右边：格子状背包 -->
+      <div class="bag-main">
+        <div id="bag-list"></div>
+        <div id="bag-desc"></div>
+      </div>
+    </div>
+    <button id="bag-close-btn" type="button">关闭背包（Tab）</button>
+  </div>
+</div>
+
+<!-- 服装（主菜单「服装」按钮） -->
+<div id="outfit" class="overlay hidden">
+  <div class="panel outfit">
+    <div class="doc-head">
+      <span>服装</span>
+      <span>点击切换 · 解锁条件写在右侧</span>
+    </div>
+    <div class="outfit-main">
+      <div id="outfit-list"></div>
+      <div class="outfit-preview-box">
+        <canvas id="outfit-preview" width="130" height="170"></canvas>
+        <div id="outfit-preview-name"></div>
+      </div>
+    </div>
+    <div id="outfit-desc"></div>
+    <button id="outfit-close-btn" type="button">关闭</button>
+  </div>
+</div>
+
+<!-- Level 13 电梯：选择本层级内的楼层 -->
+<div id="elevator" class="overlay hidden">
+  <div class="panel elevator">
+    <div class="elev-head">楼层</div>
+    <div class="elev-sub">电梯的按钮排得整整齐齐 —— 它似乎只在这栋楼里上下。</div>
+    <div id="elev-list"></div>
+    <button id="elev-close" class="ghost" type="button">走出电梯</button>
+  </div>
+</div>
+
+<!-- 结局（电梯通关等） -->
+<div id="ending" class="overlay hidden">
+  <div class="panel ending">
+    <div class="ending-tag">已离开后室</div>
+    <div class="ending-title" id="ending-title">结局</div>
+    <p class="ending-line" id="ending-line"></p>
+    <p class="ending-meta" id="ending-meta"></p>
+    <button id="ending-btn" type="button">重新开始</button>
+    <button id="ending-menu-btn" type="button" class="ghost">返回主菜单</button>
+  </div>
+</div>
+
+<div id="manual" class="overlay hidden">
+  <div class="panel manual">
+    <div class="doc-head">
+      <span>档案手册</span>
+      <span class="doc-head-right">
+        <button id="manual-search-btn" type="button" title="只搜索当前这一页的档案">搜索</button>
+        <span id="manual-count">0/0</span>
+      </span>
+    </div>
+    <div id="manual-searchbar" class="hidden">
+      <input id="manual-search-input" type="text" placeholder="只搜索当前这一页的档案…" autocomplete="off" spellcheck="false">
+      <span id="manual-search-count"></span>
+      <button id="manual-search-clear" type="button">清除</button>
+    </div>
+    <div class="manual-wrap">
+      <div id="manual-list"></div>
+      <div id="manual-doc"></div>
+    </div>
+    <button id="manual-close-btn" type="button">关闭手册（H）</button>
+  </div>
+</div>
+
+<!-- 游玩模式：单人 / AI / 联机（联机待接入） -->
+<div id="playmode" class="overlay hidden">
+  <div class="pm-box">
+    <div class="pm-head">选择游玩方式</div>
+    <div id="pm-modes">
+      <button id="pm-solo" class="pmbtn primary">
+        <b>单人游玩</b><span>你自己操控角色</span>
+      </button>
+      <button id="pm-ai" class="pmbtn">
+        <b>AI 游玩</b><span>角色由算法接管，它也不知道出口在哪</span>
+      </button>
+      <button id="pm-online" class="pmbtn">
+        <b>联机游玩</b><span>局域网联机 / VibeHub 网络联机</span>
+      </button>
+    </div>
+    <div class="pm-slots" id="pm-slots" style="margin-top:10px;border-top:1px solid rgba(217,201,94,.18);padding-top:8px;">
+      <div class="slot-head">本地存档 <span>（开局自动保存 · 最多 5 个 · 记录最后所在的层级与位置）</span></div>
+      <!-- 点了「载入」之后，上方换成这一块：只读地显示这个存档的信息，不再让选难度 -->
+      <div id="pm-slot-detail" class="slot-detail hidden"></div>
+      <div id="pm-slot-list"></div>
+      <div id="pm-slot-tip" style="font-size:11px;color:#8a7a5a;min-height:14px;margin-top:4px;"></div>
+    </div>
+    <button id="pm-back" class="pmbtn ghost">返回</button>
+  </div>
+</div>
+
+<!-- 单人难度（点了单人游玩之后选） -->
+<div id="diff" class="overlay hidden">
+  <div class="pm-box">
+    <div class="pm-head">选择难度</div>
+    <div class="diff-hint">只影响单人游玩。难度会记在存档里，随时可以回来改。</div>
+    <button id="df-0" class="pmbtn diffbtn">
+      <b>简单</b><span>死亡后在本层级重生 · 实体削弱</span>
+    </button>
+    <button id="df-1" class="pmbtn diffbtn">
+      <b>普通</b><span>死亡后在本层级重生 · 实体与现在一样</span>
+    </button>
+    <button id="df-2" class="pmbtn diffbtn">
+      <b>困难</b><span>死亡后回到 Level 0 · 实体加强</span>
+    </button>
+    <button id="df-3" class="pmbtn diffbtn">
+      <b>极端</b><span>无法存档 · 实体数量大幅增加且大幅加强</span>
+    </button>
+    <div class="slot-box diff-slot">
+      <div class="slot-title">本地存档</div>
+      <div id="df-slot-info" class="slot-info">在「选择游玩方式」里管理 5 个本地存档</div>
+      <div class="slot-tip">每个存档记录你最后所在的层级与位置。极端模式下无法存档。</div>
+    </div>
+    <button id="df-back" class="pmbtn ghost">返回</button>
+  </div>
+</div>
+
+<!-- AI 权重设置 -->
+<div id="ai-panel" class="overlay hidden">
+  <div class="ai-box">
+    <div class="pm-head">AI 权重设置</div>
+    <div class="ai-hint">数值越高，AI 越愿意为这件事跑一趟。默认顺序：<b>切出至更高层 &gt; 收集装备 &gt; 获取物资 &gt; 收集层级钥匙</b></div>
+    <div id="ai-rows"></div>
+    <div id="ai-model-hint" style="font-size:11px;color:#8a7a5a;margin:6px 0;min-height:14px;"></div>
+    <div class="ai-foot">
+      <button id="ai-export" class="ghost">导出模型</button>
+      <button id="ai-import" class="ghost">安装模型</button>
+      <button id="ai-reset" class="ghost">恢复默认</button>
+      <button id="ai-close" class="primary">完成</button>
+    </div>
+    <input id="ai-file" type="file" accept=".json,application/json" style="display:none">
+  </div>
+</div>
+
+<!-- 账号：注册 / 登录 / 云存档 -->
+<div id="account" class="overlay hidden">
+  <div class="acc-box">
+    <div class="pm-head">VibeHub 账号</div>
+      <!-- VibeHub 账号：跨设备（网络）联机要用；局域网联机不用登录 -->
+      <div class="slot-box">
+        <div class="slot-title">VibeHub 账号 · 网络联机用</div>
+        <div id="acc-vibe-st" class="slot-info">未登录 · 跨设备联机会提示「未授权」</div>
+        <div class="acc-btns">
+          <button id="acc-vibe-login" class="ghost" type="button">登录 / 重新授权</button>
+          <a id="acc-vibe-url" class="ghost" href="#" target="_blank" rel="noopener"
+             style="text-align:center;line-height:2.2;text-decoration:none;">授权页</a>
+        </div>
+        <div class="slot-tip">联机提示「未授权」就是这里没登录。局域网联机（同一台机器 / 配对码）不需要它。</div>
+      </div>
+    <div id="acc-msg" class="acc-msg"></div>
+    <div class="ai-foot"><button id="acc-close" class="primary">关闭</button></div>
+  </div>
+</div>
+
+<!-- 公告：正文来自 Announcement/Announcementtxt，内容长了自己滚动，不会溢出框外 -->
+<div id="announce" class="overlay hidden">
+  <div class="ann-box">
+    <div class="pm-head">公告</div>
+    <div id="ann-body" class="ann-body">正在读取公告…</div>
+    <div class="ai-foot"><button id="ann-close" class="primary">关闭</button></div>
+  </div>
+</div>
+
+<!-- 设置：音效 / 背景音乐 的音量与开关 -->
+<div id="settings" class="overlay hidden">
+  <div class="acc-box">
+    <div class="pm-head">设置</div>
+    <div class="set-row">
+      <div class="set-label">音效</div>
+      <button id="set-sfx-on" class="set-switch on" type="button">开</button>
+      <input id="set-sfx" class="set-range" type="range" min="0" max="100" step="5" value="80">
+      <div id="set-sfx-n" class="set-num">80</div>
+    </div>
+    <div class="set-row">
+      <div class="set-label">背景音乐</div>
+      <button id="set-bgm-on" class="set-switch on" type="button">开</button>
+      <input id="set-bgm" class="set-range" type="range" min="0" max="100" step="5" value="55">
+      <div id="set-bgm-n" class="set-num">55</div>
+    </div>
+    <div class="set-row">
+      <div class="set-label">游戏开始后仍播放</div>
+      <button id="set-bgm-ingame" class="set-switch on" type="button">开</button>
+      <div class="set-num" style="flex:1;text-align:left;color:#8a7a5a;">关掉则一进关卡就停掉背景音乐</div>
+    </div>
+    <div class="set-row">
+      <div class="set-label">环境音</div>
+      <button id="set-amb-on" class="set-switch on" type="button">开</button>
+      <input id="set-amb" class="set-range" type="range" min="0" max="100" step="5" value="70">
+      <div id="set-amb-n" class="set-num">70</div>
+    </div>
+    <div class="set-row">
+      <div class="set-label">背景音乐曲目</div>
+      <button id="set-track" class="set-switch" type="button">第 1 首</button>
+      <div class="set-num" style="flex:1;text-align:left;color:#8a7a5a;">music/main_music.mp3 / music_2.mp3</div>
+    </div>
+    <div class="set-row">
+      <div class="set-label">笑魇突脸图片</div>
+      <button id="set-scare-img" class="set-switch on" type="button">开</button>
+      <div class="set-num" style="flex:1;text-align:left;color:#8a7a5a;">关掉后被笑魇杀死只会响音效，不弹那张脸</div>
+    </div>
+    <div class="set-row">
+      <div class="set-label">界面文字</div>
+      <button id="set-uizoom" class="set-switch" type="button">自动</button>
+      <div class="set-num" style="flex:1;text-align:left;color:#8a7a5a;">机房大屏上字太小就往大调（自动 = 按屏幕大小算）</div>
+    </div>
+    <div class="set-row">
+      <div class="set-label">渲染精度</div>
+      <button id="set-dpr" class="set-switch" type="button">中</button>
+      <div class="set-num" style="flex:1;text-align:left;color:#8a7a5a;">手机掉帧就往低调（高 = 上限 2 倍 / 中 = 1.5 倍 / 低 = 1 倍）</div>
+    </div>
+    <div class="set-row">
+      <div class="set-label">设备模式</div>
+      <button id="set-devmode" class="set-switch" type="button">自动</button>
+      <div class="set-num" style="flex:1;text-align:left;color:#8a7a5a;">触屏一体机被认成电脑时手动改成「手机」（刷新后完全生效）</div>
+    </div>
+    <div class="set-row" id="row-keys">
+      <div class="set-label">键位</div>
+      <button id="set-keys" class="set-switch" type="button">自定义…</button>
+      <div class="set-num" style="flex:1;text-align:left;color:#8a7a5a;">点开可以改每个动作对应的按键（存在本机）</div>
+    </div>
+    <div class="set-row" id="row-touchpos">
+      <div class="set-label">手机按键位置</div>
+      <button id="set-touch-pos" class="set-switch" type="button">调整…</button>
+      <div class="set-num" style="flex:1;text-align:left;color:#8a7a5a;">进入调整模式后可拖动屏幕按钮，位置存在本机</div>
+    </div>
+    <div class="set-tip">音量会记住；关掉之后完全静音。环境音管的是层级里的杂音（Level 14 的嘈杂声）和 Level 5 那台收音机。</div>
+    <div class="ai-foot"><button id="set-close" class="primary">关闭</button></div>
+  </div>
+</div>
+
+<!-- 键位设置 -->
+<div id="keymap" class="overlay hidden">
+  <div class="panel km-box">
+    <div class="panel-head"><span>键位设置</span>
+      <button id="km-close" class="ghost" type="button">关闭</button></div>
+    <div class="acc-box">
+      <div id="km-list"></div>
+      <div class="km-hint" id="km-hint">点「改键」后按下想用的键（Esc 取消，Backspace 清空该动作）</div>
+      <div class="ai-foot">
+        <button id="km-reset" class="ghost" type="button">恢复默认</button>
+        <button id="km-ok" class="primary" type="button">完成</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 手机按键位置调整 -->
+<div id="touch-adjust-bar">
+  <span>拖动按钮调整位置</span>
+  <button id="ta-reset" class="ghost" type="button">复位</button>
+  <button id="ta-ok" class="primary" type="button">完成</button>
+</div>
+
+<!-- 开发者：显示玩家所在地图全貌 -->
+<div id="mapview" class="overlay hidden">
+  <div class="panel mapv-box">
+    <div class="panel-head"><span id="mapv-title">地图全貌</span>
+      <button id="mapv-close" class="ghost" type="button">关闭</button></div>
+    <div class="acc-box">
+      <div class="mapv-wrap"><canvas id="mapv-cv"></canvas></div>
+      <div class="mapv-bar">
+        <span id="mapv-info" class="mapv-info"></span>
+        <span class="mapv-sp"></span>
+        <button id="mapv-fup" class="ghost" type="button">上一层</button>
+        <span id="mapv-floor" class="mapv-floor">0</span>
+        <button id="mapv-fdn" class="ghost" type="button">下一层</button>
+        <button id="mapv-save" class="ghost" type="button">导出 PNG</button>
+      </div>
+      <div class="mapv-legend">
+        <span><i style="background:#3a4048"></i>墙</span>
+        <span><i style="background:#e6e9ee"></i>地面</span>
+        <span><i style="background:#9fd4dd"></i>水</span>
+        <span><i style="background:#d9c95e"></i>门 / 出口</span>
+        <span><i style="background:#ff5a4a"></i>玩家</span>
+        <span><i style="background:#ff9c3a"></i>实体</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- B.N.T.G 新时代广场的柜台：用杏仁水买东西，或者把身上的东西换成杏仁水 -->
+<div id="bntg" class="overlay hidden">
+  <div class="panel bntg-box">
+    <div class="panel-head"><span>B.N.T.G · 新时代广场</span>
+      <button id="bntg-close" class="ghost" type="button">离开柜台</button></div>
+    <div class="acc-box">
+      <div class="bntg-tip">柜台后面的人戴着防毒面具，说话闷闷的。
+        杏仁水在这里就是钱 —— 一瓶买一根撬棍，一根撬棍也能换回一瓶。
+        也可以换成 B.N.T.G 货币：<b style="color:#f0d98a">1 瓶杏仁水 = 5 枚</b>，
+        两种都能直接付账（用货币付的话，要付瓶数的 5 倍）。</div>
+      <div class="bntg-wallet">
+        <span>杏仁水：<b id="bntg-almond">0</b> 瓶</span>
+        <span>B.N.T.G 货币：<b id="bntg-coin">0</b> 枚</span>
+      </div>
+      <div id="bntg-ex" class="bntg-ex"></div>
+      <div id="bntg-body" class="bntg-body"></div>
+      <div class="bntg-foot">
+        <span id="bntg-state" class="bntg-state"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Level 900 正门口那辆咖啡车：摊主不在。三列分别是糖、奶、奶油，
+     自己调，喝下去会去往某个层级 —— 配方对不上就什么都不会发生。 -->
+<div id="coffee" class="overlay hidden">
+  <div class="panel coffee-box">
+    <div class="panel-head"><span>咖啡车 · Level 900</span>
+      <button id="coffee-close" class="ghost" type="button">放下杯子</button></div>
+    <div class="acc-box">
+      <div class="coffee-tip">车斗上摆着一台还在保温的咖啡机、三个罐子和一摞杯子，
+        摊主不知道去哪了。<b style="color:#cabb92">每一列最多三份</b> ——
+        勺数、袋数不一样，喝下去到的地方也不一样。</div>
+      <div id="coffee-cols" class="coffee-cols"></div>
+      <div class="coffee-mix">
+        <div class="cm-cup">
+          <div id="coffee-cup" class="cup"></div>
+        </div>
+        <div class="cm-txt">
+          <div id="coffee-now" class="cm-now">一杯什么都没加的黑咖啡</div>
+          <div id="coffee-res" class="cm-res">按「喝了它」，看它把你送到哪。</div>
+        </div>
+      </div>
+      <div class="coffee-foot">
+        <button id="coffee-reset" class="ghost" type="button">倒掉重来</button>
+        <button id="coffee-drink" class="primary" type="button">喝了它</button>
+      </div>
+      <div id="coffee-state" class="coffee-state"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Level 999：后室意志一条一条念你的罪状，每念完一条就等你一句。
+     没有关闭按钮 —— 必须一条条答完。全认、全不认、认一部分，三种下场。 -->
+<!-- Level 4 办公电脑：开机后是一个老式桌面（浏览器 / 计算器 / 扫雷），网速只有 2G~3G -->
+<div id="pc4" class="overlay hidden">
+  <div class="panel pc4-box">
+    <div class="panel-head"><span id="pc4-title">办公电脑</span>
+      <button id="pc4-close" class="ghost" type="button">关机</button></div>
+    <div class="pc4-screen">
+      <div id="pc4-desktop" class="pc4-desktop"></div>
+      <div id="pc4-app" class="pc4-app hidden"></div>
+      <div class="pc4-bar">
+        <button id="pc4-start" class="pc4-start" type="button">开始</button>
+        <span id="pc4-task" class="pc4-task"></span>
+        <span class="pc4-tray">
+          <span id="pc4-wifi" class="pc4-wifi" title="信号"></span>
+          <span id="pc4-net" class="pc4-net">2G</span>
+          <span id="pc4-clock" class="pc4-clock">00:00</span>
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Level 601 终末：大厅正中那台还在运行的电脑。
+     网线早就断了 —— 连不上任何网络，也打不开任何网址。
+     硬盘里只有三个 .exe：H97Run / HELPPLEASE / TCI_BootUp，双击就能运行。 -->
+<div id="pc601" class="overlay hidden">
+  <div class="panel pc4-box">
+    <div class="panel-head"><span id="pc601-title">终末的电脑</span>
+      <button id="pc601-close" class="ghost" type="button">关机</button></div>
+    <div class="pc4-screen">
+      <div id="pc601-desktop" class="pc4-desktop"></div>
+      <div id="pc601-app" class="pc4-app hidden"></div>
+      <div class="pc4-bar">
+        <button id="pc601-start" class="pc4-start" type="button">开始</button>
+        <span id="pc601-task" class="pc4-task"></span>
+        <span class="pc4-tray">
+          <span id="pc601-wifi" class="pc4-wifi" title="信号"></span>
+          <span id="pc601-net" class="pc4-net">未连接</span>
+          <span id="pc601-clock" class="pc4-clock">00:00</span>
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 赫尔墨斯装置：选择要传送到的层级（只列出前后 50 个层级以内、且已经存在的地方） -->
+<div id="hermes" class="overlay hidden">
+  <div class="panel hermes-box">
+    <div class="panel-head"><span id="hermes-title">赫尔墨斯装置</span>
+      <button id="hermes-close" class="ghost" type="button">收起</button></div>
+    <div class="acc-box">
+      <div class="hermes-tip" id="hermes-tip"></div>
+      <div id="hermes-list" class="hermes-list"></div>
+      <div class="hermes-foot"><span id="hermes-state" class="hermes-state"></span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Level 15.1 仿真设备：躺进去之前先挑一个模拟内容（摘下后可以重新挑） -->
+<div id="simsel" class="overlay hidden">
+  <div class="panel hermes-box">
+    <div class="panel-head"><span id="simsel-title">仿真设备 —— 想模拟什么？</span>
+      <button id="simsel-close" class="ghost" type="button">收起</button></div>
+    <div class="acc-box">
+      <div class="hermes-tip" id="simsel-tip"></div>
+      <div id="simsel-list" class="hermes-list"></div>
+      <div class="hermes-foot"><span id="simsel-state" class="hermes-state"></span></div>
+    </div>
+  </div>
+</div>
+
+<div id="confess" class="overlay hidden">
+  <div class="panel confess-box">
+    <div class="panel-head"><span>后室意志 · 忏悔</span></div>
+    <div class="acc-box">
+      <div class="confess-tip">你跪下来。没有风，也没有声音 —— 但有什么东西正看着你，
+        一条一条念你做过的事。它不急，念完一条就等你一句。</div>
+      <div id="confess-body" class="confess-body"></div>
+      <div class="confess-foot">
+        <span id="confess-state" class="confess-state"></span>
+        <button id="confess-done" class="ghost" type="button" disabled>认完了</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- 全认之后的那片黑：什么都看不见，然后在 Level 1000 醒过来 -->
+<div id="confess-black" class="confess-black hidden"></div>
+
+<!-- 解锁结局时右下角的提示：点一下跳到档案里那一篇的说明，然后它就消失了 -->
+<button id="end-toast" class="end-toast hidden" type="button"></button>
+
+<!-- 录像时常驻的指示：按下 L 就知道在录，录完明确显示结束 -->
+<div id="rec-ind" class="hidden"><span id="rec-label">● REC</span> <span id="rec-time"></span></div>
+
+<!-- 开始菜单：背景图铺满整个界面 + 毛玻璃按钮（1.3.4） -->
+<div id="menu" class="overlay hidden">
+  <!-- 背景图铺满整个界面：底层模糊填满边角，上层完整显示、绝不裁掉玩家自己放的那张图。
+       包里不带任何默认背景图；玩家把 menu-bg.jpg 放进 img/ 才会显示，缺图时只用 CSS 底色。 -->
+  <img id="menu-bg-fill" class="menu-bgfill" src="img/menu-bg.jpg" alt=""
+       onerror="this.style.display='none'">
+  <img id="menu-bg" class="menu-bgfull" src="img/menu-bg.jpg" alt="后室 Level 0 · 俯视"
+       onerror="this.style.display='none'">
+  <div class="menu-shade" aria-hidden="true"></div>
+
+  <!-- 主菜单右上角：公告 / 账号 -->
+  <div class="menu-topbtns">
+    <button id="menu-announce-btn" class="mtop-btn" type="button">公告</button>
+    <button id="menu-account-btn" class="mtop-btn" type="button">账号</button>
+    <span class="slts-inline"><img id="menu-slts" src="img/slts.png" alt="适龄提示"><span class="slts-txt" id="menu-slts-txt">适龄提示</span></span>
+  </div>
+  <!-- 屏幕最右边中间：攻略 / 背景图 / 更新日志 -->
+  <div id="menu-corner" class="menu-corner">
+    <button id="menu-guide-btn" class="bg-btn" type="button">查看攻略</button>
+    <button id="menu-bg-btn" class="bg-btn" type="button">背景图</button>
+    <button id="menu-egg2-btn" class="bg-btn egg2 hidden" type="button">???</button>
+    <button id="menu-mask26-btn" class="bg-btn hidden" type="button">摘下 =( 面具</button>
+    <button id="menu-verlog-btn" class="bg-btn" type="button">更新日志</button>
+  </div>
+
+  <!-- 标题：左上角，与按钮组彻底分开（独立定位，不随按钮移动） -->
+  <div class="menu-head">
+    <h1 class="menu-title">BACKROOMS<span class="ver-badge">1.3.4</span></h1>
+    <div class="menu-sub">俯视</div>
+    <div class="menu-gamename">后室 | 无人抵达</div>
+    <div id="online-box" class="online-box"><span class="dot"></span><span id="online-n">—</span> 人正在后室里</div>
+  </div>
+
+  <!-- 按钮：左边中间，独立定位 -->
+  <div class="menu-wrap">
+    <div class="menu-left">
+      <button id="start-btn" class="mbtn primary">开始游玩</button>
+      <button id="menu-manual-btn" class="mbtn">层级档案</button>
+      <button id="menu-help-btn" class="mbtn">说明</button>
+      <button id="menu-outfit-btn" class="mbtn">服装</button>
+      <button id="menu-settings-btn" class="mbtn">设置</button>
+    </div>
+  </div>
+</div>
+
+<!-- 竖屏提示：这游戏是按横屏设计的 -->
+<div id="orient" class="orient hidden">
+  <div class="orient-box">
+    <div class="orient-icon">⟳</div>
+    <div class="orient-t">请横屏游玩</div>
+    <div class="orient-s">BACKROOMS 是按横屏设计的，把手机横过来会好很多。</div>
+  </div>
+</div>
+
+<!-- 联机聊天：鼠标移到左边出现，点进去锁定输入 -->
+<div id="chat-hot" class="chat-hot" aria-hidden="true"></div>
+<div id="chat" class="chat-wrap hidden">
+  <div class="chat-head">
+    <span>房间聊天</span>
+    <span id="chat-tip">点输入框开始打字</span>
+    <button id="chat-close" class="chat-x" type="button" title="关闭聊天">×</button>
+  </div>
+  <div id="chat-log" class="chat-log"></div>
+  <textarea id="chat-in" class="chat-in" maxlength="200" rows="3"
+    placeholder="按 Enter 发送 · Shift+Enter 换行 · 最多 200 字"></textarea>
+  <div class="chat-foot">
+    <span id="chat-count">0/200</span>
+    <button id="chat-send" class="chat-send" type="button">发送</button>
+  </div>
+</div>
+
+<!-- 挤号申请：这个号正在别处登录 -->
+<div id="lreq" class="overlay hidden">
+  <div class="panel lreq-panel">
+    <div class="doc-head"><span>这个账号正在别处登录</span><span>同账号同时只登一个网页</span></div>
+    <p class="lreq-p">要登进去，得先让已经登录的那边同意。写个理由，对方会看到。</p>
+    <p class="lreq-p" id="lreq-tip" style="color:#9a917a"></p>
+    <textarea id="lreq-reason" class="lreq-ta" maxlength="120" placeholder="例如：我在另一台设备上，想接着玩"></textarea>
+    <div class="lreq-msg" id="lreq-msg"></div>
+    <div class="lreq-acts">
+      <button id="lreq-send" class="gh-btn" type="button">发送申请</button>
+      <button id="lreq-cancel" class="gh-btn" type="button">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- 挤号申请：别人想登你的号 -->
+<div id="lreq-ask" class="overlay hidden">
+  <div class="panel lreq-panel">
+    <div class="doc-head"><span>有人想登你的账号</span><span id="lreq-ask-nick"></span></div>
+    <p class="lreq-p">对方填写的理由：</p>
+    <div class="lreq-reason" id="lreq-ask-reason"></div>
+    <p class="lreq-p lreq-warn">同意之后你会被挤下线，对方将接手这个账号。</p>
+    <div class="lreq-msg" id="lreq-ask-msg"></div>
+    <div class="lreq-acts">
+      <button id="lreq-ok" class="gh-btn" type="button">确定</button>
+      <button id="lreq-no" class="gh-btn" type="button">拒绝</button>
+    </div>
+  </div>
+</div>
+
+<!-- 攻略：游戏窗口内直接看通关路线 -->
+<div id="guide" class="overlay hidden">
+  <div class="panel guide-panel">
+    <div class="doc-head">
+      <span>攻略 · 各层级通关路线</span>
+      <span id="guide-src">www.tutorial.thebackrooms2d.de5.net</span>
+    </div>
+    <div class="guide-bar">
+      <button id="guide-copy" class="gh-btn" type="button">复制网址</button>
+      <button id="guide-retry" class="gh-btn" type="button">刷新内容</button>
+      <button id="guide-width" class="gh-btn" type="button">页面宽度：1200</button>
+      <button id="guide-wiki" class="gh-btn" type="button">切换：中文维基</button>
+      <button id="guide-close" class="gh-btn" type="button">关闭（Esc）</button>
+    </div>
+    <div id="guide-box" class="guide-box">
+      <div id="guide-stage" class="guide-stage"></div>
+      <div id="guide-fallback" class="guide-fallback hidden">
+        <p class="gf-t">站点暂时没加载出来</p>
+        <p class="gf-u">www.tutorial.thebackrooms2d.de5.net</p>
+        <p class="gf-s">这里不缓存站点内容，免得你看到的是几个月前的旧版本。<br>点「刷新内容」重连，或「复制网址」到浏览器里看。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 背景图：选择 / 查看解锁方法 -->
+<div id="bgsel" class="overlay hidden">
+  <div class="panel bgsel">
+    <div class="doc-head"><span>背景图</span><span>点击一张来切换</span></div>
+    <div id="bgsel-list"></div>
+    <div id="bgsel-desc"></div>
+    <button id="bgsel-close-btn" type="button">关闭</button>
+  </div>
+</div>
+
+<!-- 被笑魇杀死：突脸（覆盖全部游戏画面），之后才进死亡界面 -->
+<div id="scare" class="overlay hidden">
+  <img id="scare-img" src="img/3.png" alt="">
+</div>
+
+<!-- 说明 -->
+<div id="help" class="overlay hidden">
+  <div class="panel">
+    <h1 class="title" style="font-size:26px;">说明</h1>
+    <p class="desc">如果你不小心，在错误的地方脱离现实，你就会进入后室。
+      眼前只有发黄的墙纸、潮湿的地毯和无尽的房间，头顶的荧光灯嗡嗡作响。
+      黑暗中有东西在注视你……<br><br>
+      目标：在 Level 0 里找到<b style="color:#fff0aa;">闪烁的墙壁</b>
+      或<b style="color:#dfe4e8;">白色铁门</b>，一层层往下逃。<br><br>
+      <b>Level 3 发电站</b>：在 Level 2 找到未上锁的<b>铁栅栏门</b>切入；离开要先找到<b>电梯钥匙</b>，
+      再到<b>电力室</b>合上电梯电力开关，最后搭乘电梯。<br><br>
+      按 <b>Tab</b> 打开背包，按 <b>H</b> 打开档案手册；把<b>层级密钥</b>放进快捷栏后，对着<b>任意一扇门</b>按 <b>G</b> 切层
+      （那扇门从此失效）。主菜单的「服装」可以换装。<br><br>
+      <b>Level 5 恐怖旅馆</b>：主厅 / 贝弗莉室 / 锅炉房三个区域，靠门与电梯穿梭；深入锅炉房可切到 Level 6。<br>
+      <b>Level 6 熄灯</b>：彻底黑暗，手电无效。碰到墙会留下一个点，贴着墙走会连成线 —— 它们会慢慢褪掉。<br>
+      <b>Level 7 深海恐惧症</b>：从门廊下潜，找齐<b>潜水服</b>与<b>潜艇</b>，去午夜带海底的岩洞。<br>
+      <b>Level 8 岩洞系统</b>：毒气、涨潮、蜘蛛巢与牧蛇；找到那处<b>绿色出口</b>即可穿出。<br>
+      <b>枢纽</b>（隐秘层级）：到过某一层<b>不算数</b>，枢纽里那扇门仍旧锁着 —— 得先在该层找到与它绑定的<b>层级密钥</b>，
+      再拿回枢纽开门；开门不消耗钥匙，此后这扇门一直开着。只有 <b>Level 1 / Level 11</b> 不需要密钥。
+      密钥也能插进没有编号的锁孔门直接切层，钥匙得一直留在锁孔里，身后的回程门才作数。
+      散落的<b style="color:#ffe97a;">泛黄纸张</b>是流浪者留下的日志与档案——
+      <b>站到纸片上</b>才能阅读，读过的会收进档案手册，随时翻看。<br><br>
+      走廊里立着<b style="color:#d8c98a;">关着的门</b>：门后一片漆黑，推开才知道里面有什么。</p>
+    <div class="controls">
+      <div class="kb"><span>WASD / 方向键</span>移动</div>
+      <div class="kb"><span>Shift</span>冲刺（消耗体力）</div>
+      <div class="kb"><span>F</span>手电筒</div>
+      <div class="kb"><span>E</span>阅读档案</div>
+      <div class="kb"><span>R</span>开关门 / 进出层级</div>
+      <div class="kb"><span>H</span>档案手册</div>
+      <div class="kb"><span>M</span>静音</div>
+      <div class="kb"><span>Esc</span>暂停</div>
+      <div class="tp" style="display:none"><span>左下摇杆</span>移动（推到边缘自动冲刺）</div>
+      <div class="tp" style="display:none"><span>右下按钮</span>手电 / 冲刺 / 阅读</div>
+      <div class="tp" style="display:none"><span>右下按钮</span>走到门旁会冒出「开门」</div>
+      <div class="tp" style="display:none"><span>HUD 按钮</span>随时翻开档案手册</div>
+      <div class="tp" style="display:none"><span>右上角</span>静音 · 暂停</div>
+    </div>
+    <button id="help-close-btn">返回</button>
+  </div>
+</div>
+
+<!-- 死亡：一份中断的观测记录 -->
+<!-- 结局 0：悲尸循环 -->
+<div id="wretch" class="overlay hidden">
+  <div class="panel wretch">
+    <div class="wretch-tag" id="wretch-end">结局 0 · 悲尸循环</div>
+    <div class="wretch-title">你已经不是人了</div>
+    <div class="wretch-level" id="wretch-level"></div>
+    <p class="wretch-line" id="wretch-line"></p>
+    <p class="wretch-reason" id="wretch-reason"></p>
+    <button id="wretch-btn" type="button">重新开始</button>
+    <button id="wretch-menu-btn" type="button" class="ghost">返回主菜单</button>
+  </div>
+</div>
+
+<!-- 死亡：屏幕整个变黑，只剩一份中断的观测记录 -->
+<div id="dead" class="overlay hidden">
+  <div class="rec-tag">[记录结束]</div>
+  <div class="rec-nodata">[NO DATA]</div>
+  <div class="rec-meta">
+    <div class="rec-row"><span>时长</span><b id="dead-time">00:00</b></div>
+    <div class="rec-row"><span>死因</span><b id="dead-cause">未知</b></div>
+    <div class="rec-row"><span>层级</span><b id="dead-level">Level 0</b></div>
+    <div class="rec-row"><span>档案</span><b id="dead-arch">0/0</b></div>
+  </div>
+  <p class="rec-note">它比你先到一步。<br>黑暗重新归于平静……</p>
+  <button id="restart-btn">重新开始</button>
+  <button id="dead-menu-btn" class="ghost">返回主菜单</button>
+</div>
+
+<!-- 关卡切换 -->
+<div id="levelup" class="overlay hidden">
+  <div class="panel">
+    <h1 id="levelup-title">已逃离阈界</h1>
+    <p id="levelup-sub">正在进入宜居地带</p>
+  </div>
+</div>
+
+<!-- 暂停 -->
+<div id="pause" class="overlay hidden">
+  <div class="panel">
+    <h1 class="title">已暂停</h1>
+    <p class="desc" style="text-align:center;">黑暗在原地等待你……</p>
+    <button id="resume-btn">继续</button>
+    <button id="pause-set-btn" class="ghost">设置</button>
+    <button id="menu-btn2" class="ghost">返回主菜单</button>
+    <p class="desc" style="text-align:center;margin-top:10px;font-size:12px;color:#8a7f66;">
+      返回主菜单会放弃当前这一局；已收集的档案、服装与结局都会保留。
+    </p>
+  </div>
+</div>
+
+<!-- 日志档案阅读 -->
+<div id="archive" class="overlay hidden">
+  <div class="panel doc">
+    <div class="doc-head">
+      <span id="archive-kind"></span>
+      <span id="archive-count"></span>
+    </div>
+    <h2 id="archive-title"></h2>
+    <div id="archive-source"></div>
+    <div id="archive-body"></div>
+    <div class="doc-close">
+      <span class="kb-inline">按 <b>E</b> / <b>ESC</b> 关闭</span>
+      <button id="archive-close-btn" type="button">关闭档案</button>
+    </div>
+  </div>
+</div>
+
+<!-- 管理员终端（Shift + F7 · 触屏长按档案手册 5 秒） -->
+<div id="terminal" class="overlay hidden">
+  <div class="panel term">
+    <div class="term-head">
+      <span>管理员终端 · ADMIN TERMINAL</span>
+      <span id="term-state">未授权</span>
+      <!-- 手机端没有 Esc，底下那个「关闭终端」在竖屏小屏上可能被挤出屏幕 —— 头部再放一个 -->
+      <button id="term-x" type="button" class="term-x" title="关闭终端" aria-label="关闭终端">✕</button>
+    </div>
+
+    <!-- 授权：口令 -->
+    <div class="term-auth" id="term-auth">
+      <input id="term-pass" type="password" autocomplete="off" spellcheck="false"
+             placeholder="开发者口令" />
+      <button id="term-auth-btn" type="button">授权</button>
+      <!-- 这把钥匙不藏着 —— 直接写在页面上 -->
+      <div class="term-tip">层级连通性验证密钥：<b>levelverify</b>（输入后打开验证界面）</div>
+    </div>
+
+    <!-- 图形化按钮区（授权后解锁） -->
+    <div id="term-main" class="term-main hidden">
+      <div class="term-sec">
+        <button class="term-btn" type="button" data-act="tp">传送层级 …</button>
+        <button class="term-btn" type="button" data-act="invincible">无敌模式：<b id="term-inv">关</b></button>
+        <button class="term-btn" type="button" data-act="give">发放物品 …</button>
+        <button class="term-btn" type="button" data-act="bag">发放背包 …</button>
+      </div>
+      <div class="term-sec">
+        <button class="term-btn" type="button" data-act="spawn">生成实体 …</button>
+        <button class="term-btn" type="button" data-act="killall">清除全部实体</button>
+        <button class="term-btn" type="button" data-act="kill">清除指定实体 …</button>
+      </div>
+      <div class="term-sec term-num">
+        <span class="term-lb">血量</span>
+        <input id="term-hp" type="number" min="1" max="100" value="100" />
+        <button class="term-btn" type="button" data-act="hp">设定</button>
+        <span class="term-lb">理智</span>
+        <input id="term-san" type="number" min="1" max="100" value="100" />
+        <button class="term-btn" type="button" data-act="san">设定</button>
+      </div>
+      <div class="term-sec term-num">
+        <span class="term-lb">容量</span>
+        <input id="term-bag" type="number" min="1" value="25" />
+        <button class="term-btn" type="button" data-act="bagcap">设定背包容量</button>
+        <button class="term-btn" type="button" data-act="baginf">无限容量</button>
+      </div>
+      <div class="term-sec">
+        <button class="term-btn" type="button" data-act="cli">终端 · 命令行</button>
+        <button class="term-btn" type="button" data-act="status">查看状态</button>
+        <button class="term-btn" type="button" data-act="map">显示地图全貌</button>
+        <button class="term-btn" type="button" data-act="clear">清屏</button>
+        <button class="term-btn" type="button" data-act="logout">退出此页面</button>
+      </div>
+    </div>
+
+    <!-- 命令行：点上面那个「终端 · 命令行」进来，直接敲指令；输入 exit 回到图形按钮 -->
+    <div id="term-cli" class="term-cli hidden">
+      <div class="term-sub-head">
+        <span>命令行 · 敲完回车执行（输入 exit 回到图形界面）</span>
+        <button id="term-cli-back" type="button" class="ghost">返回</button>
+      </div>
+      <div class="term-cli-line">
+        <span class="term-cli-prompt">//&gt;</span>
+        <input id="term-cli-input" type="text" autocomplete="off" spellcheck="false"
+               placeholder="Teleport player#me to L601" />
+        <button id="term-cli-run" type="button" class="ghost">执行</button>
+      </div>
+      <div class="term-cli-tip">
+        常用：Teleport player#me to L601 ｜ Invincible player#me ｜ setting HP to 100 ｜ display all map ｜ help
+      </div>
+    </div>
+
+    <!-- 子界面：层级名 / 物品名 / 实体名，点一下就执行 -->
+    <div id="term-sub" class="term-sub hidden">
+      <div class="term-sub-head">
+        <span id="term-sub-title"></span>
+        <span class="term-qty hidden" id="term-qty-wrap">数量
+          <input id="term-qty" type="number" min="1" max="30" value="1" />
+        </span>
+        <button id="term-sub-back" type="button" class="ghost">返回</button>
+      </div>
+      <!-- 层级名单快一百条 —— 这个筛选框用来直接搜编号（比如输 601） -->
+      <input id="term-sub-filter" class="term-sub-filter hidden" type="text"
+             autocomplete="off" spellcheck="false" placeholder="筛选：输入编号或名字（如 601）" />
+      <div id="term-sub-list"></div>
+    </div>
+
+    <!-- 层级连通性验证（密钥 levelverify） -->
+    <div id="term-verify" class="term-verify hidden">
+      <div class="term-sub-head">
+        <span>层级连通性验证 · LEVEL VERIFY</span>
+        <button id="verify-back" type="button" class="ghost">退出此页面</button>
+      </div>
+      <div class="term-sec">
+        <button id="verify-run" type="button" class="term-btn">开始验证</button>
+        <button id="verify-copy" type="button" class="term-btn">复制结果</button>
+        <span class="term-lb" id="verify-state">未开始</span>
+      </div>
+      <pre id="verify-out" class="verify-out">点「开始验证」—— 逐个层级检查：
+
+  1. 出口是否存在（必死层级 Level 666 / 黯洃銫 不算）
+  2. 出口是否真的通向另一个已存在的层级
+  3. 出口能不能走到、有没有被画成桌子、有没有卡在墙里
+  4. 该层该出现的区域是否出现、体积是否正常
+     （Level 5 侧厅 / Level 1 花园段 / Level 11 医院 / Level 0.7 六个区域 …）</pre>
+    </div>
+
+    <div id="term-log"></div>
+    <div class="term-foot">
+      <span id="term-foot-tip">Shift + F7 关闭</span>
+      <button id="term-close-btn" type="button" class="ghost">关闭终端</button>
+    </div>
+  </div>
+</div>
+
+<!-- VibeHub SDK v3 —— 网络联机用。必须是【绝对地址】：游戏跑在 vibeapps 域，写相对路径会 404（规范红线） -->
+<script src="https://gamesvibe.app/sdk/v3/vibehub.js"></script>
+<script src="js/config.js?v=202"></script>
+<script src="js/cloud.js?v=202"></script>
+<script src="js/constants.js?v=202"></script>
+<script src="js/audio.js?v=202"></script>
+<!-- 层级建筑布局（固定坐标 + 生成种子） -->
+<script src="js/level/levelExitDoor.js?v=202"></script>
+<script src="js/level/level0.js?v=202"></script>
+<script src="js/level/level0.2.js?v=202"></script>
+<script src="js/level/level0.3.js?v=202"></script>
+<script src="js/level/level1.js?v=202"></script>
+<script src="js/level/level1.1.js?v=202"></script>
+<script src="js/level/level1.2.js?v=202"></script>
+<script src="js/level/level1.3.js?v=202"></script>
+<script src="js/level/level1.5.js?v=202"></script>
+<script src="js/level/level2.js?v=202"></script>
+<script src="js/level/level2.1.js?v=202"></script>
+<script src="js/level/level3.js?v=202"></script>
+<script src="js/level/level3.5.js?v=202"></script>
+<script src="js/level/level4.js?v=202"></script>
+<script src="js/level/level5.js?v=202"></script>
+<script src="js/level/level6.js?v=202"></script>
+<script src="js/level/level7.js?v=202"></script>
+<script src="js/level/level8.js?v=202"></script>
+<script src="js/level/level9.js?v=202"></script>
+<script src="js/level/level10.js?v=202"></script>
+<script src="js/level/level11.js?v=202"></script>
+<script src="js/level/level11newera.js?v=202"></script>
+<script src="js/level/level11hospital.js?v=202"></script>
+<script src="js/level/level13.js?v=202"></script>
+<script src="js/level/level15.js?v=202"></script>
+<script src="js/level/level15.1.js?v=202"></script>
+<script src="js/level/level21.js?v=202"></script>
+<script src="js/level/level26.js?v=202"></script>
+<script src="js/level/level70.js?v=202"></script>
+<script src="js/level/levelhub.js?v=202"></script>
+<script src="js/level/levelNew.js?v=202"></script>
+<script src="js/level/level25.js?v=202"></script>
+<script src="js/level/level37.js?v=202"></script>
+<script src="js/level/level601.js?v=202"></script>
+<script src="js/level/level363.js?v=202"></script>
+<script src="js/level/levelShattered.js?v=202"></script>
+<script src="js/level/level994.js?v=202"></script>
+<script src="js/level/level9223372036854775807.js?v=202"></script>
+<script src="js/level/level9223372036854775807.-1.js?v=202"></script>
+<script src="js/level/levelBatch.js?v=202"></script>
+<script src="js/level/level6.1.js?v=202"></script>
+<script src="js/level/level10.1.js?v=202"></script>
+<script src="js/level/level5.2.js?v=202"></script>
+<script src="js/level/level5.3.js?v=202"></script>
+<script src="js/level/level6.2.js?v=202"></script>
+<script src="js/level/level11.3.js?v=202"></script>
+<script src="js/level/level12.js?v=202"></script>
+<script src="js/level/level17.js?v=202"></script>
+<script src="js/level/level171.js?v=202"></script>
+<script src="js/level/level49.js?v=202"></script>
+<script src="js/level/level49.1.js?v=202"></script>
+<script src="js/level/level71.js?v=202"></script>
+<script src="js/level/level109.js?v=202"></script>
+<script src="js/level/level119.js?v=202"></script>
+<script src="js/level/level287.js?v=202"></script>
+<script src="js/level/level20.js?v=202"></script>
+<script src="js/level/level20game.js?v=202"></script>
+<script src="js/level/level289.js?v=202"></script>
+<script src="js/level/level22.js?v=202"></script>
+<script src="js/level/level33.js?v=202"></script>
+<script src="js/level/level67.js?v=202"></script>
+<script src="js/level/level31.js?v=202"></script>
+<script src="js/level/level40.js?v=202"></script>
+<script src="js/level/level94.js?v=202"></script>
+<script src="js/level/level45.js?v=202"></script>
+<script src="js/level/level78.js?v=202"></script>
+<script src="js/level/level599.js?v=202"></script>
+<script src="js/level/level14h.js?v=202"></script>
+<script src="js/level/level696.js?v=202"></script>
+<script src="js/level/level30.js?v=202"></script>
+<script src="js/level/level301.js?v=202"></script>
+<script src="js/level/level484.js?v=202"></script>
+<script src="js/level/level485.js?v=202"></script>
+<script src="js/level/level486.js?v=202"></script>
+<script src="js/level/level512.js?v=202"></script>
+<script src="js/level/level666.js?v=202"></script>
+<script src="js/level/level790.js?v=202"></script>
+<script src="js/level/level36.js?v=202"></script>
+<script src="js/level/level36.1.js?v=202"></script>
+<script src="js/level/level900.js?v=202"></script>
+<script src="js/level/level998.js?v=202"></script>
+<script src="js/level/level974.js?v=202"></script>
+<script src="js/level/level999.js?v=202"></script>
+<script src="js/level/level1000.js?v=202"></script>
+<script src="js/level/levelAnse.js?v=202"></script>
+<script src="js/level/levelBang.js?v=202"></script>
+<script src="js/level/levelExclam.js?v=202"></script>
+<script src="js/level/levelBlueChannel.js?v=202"></script>
+<script src="js/level/level0traproof.js?v=202"></script>
+<script src="js/level/level0.1.js?v=202"></script>
+<script src="js/level/level0.7.js?v=202"></script>
+<script src="js/level/levelRedRooms.js?v=202"></script>
+<script src="js/level/level29.js?v=202"></script>
+<script src="js/level/level284.js?v=202"></script>
+<script src="js/level/level27.js?v=202"></script>
+<script src="js/level/level28.js?v=202"></script>
+<script src="js/level/level0pain.js?v=202"></script>
+<script src="js/level/level24.js?v=202"></script>
+<script src="js/level/level56.js?v=202"></script>
+<script src="js/level/level57.js?v=202"></script>
+<script src="js/level/level1merchant.js?v=202"></script>
+<script src="js/level/level601fake.js?v=202"></script>
+<script src="js/level/levelBatch2Common.js?v=202"></script>
+<script src="js/level/level51.js?v=202"></script>
+<script src="js/level/level39.js?v=202"></script>
+<script src="js/level/level63.js?v=202"></script>
+<script src="js/level/level797.js?v=202"></script>
+<script src="js/level/level46.js?v=202"></script>
+<script src="js/level/level23_32.js?v=202"></script>
+<script src="js/level/level38_43_34.js?v=202"></script>
+<script src="js/level/level903_904_834.js?v=202"></script>
+<script src="js/level/level75_16.js?v=202"></script>
+<script src="js/level/levelKey.js?v=202"></script>
+<script src="js/level/level0.5.js?v=202"></script>
+<script src="js/map.js?v=202"></script>
+<script src="js/archive.js?v=202"></script>
+<script src="js/camera.js?v=202"></script>
+<script src="js/level/digitalCamera.js?v=202"></script>
+<script src="js/entities.js?v=202"></script>
+<script src="js/ai.js?v=202"></script>
+<script src="js/net.js?v=202"></script>
+<script src="js/lobby.js?v=202"></script>
+<script src="js/main.js?v=202"></script>
+<script src="js/opening.js?v=202"></script>
+<script>
+/* 最后一道保险：不管前面哪一环卡住（加载条、忠告、开屏），一定放行到主菜单，
+   绝不让玩家卡在一块黑屏上。
+   顺序是：加载进度条 → 健康忠告（6 秒）→ 开屏动画 → 主菜单。
+   所以这里的时间要一层层往后留。 */
+// 加载条：它自己有 30 秒兜底；这里再补一道 —— 万一它那段内联脚本没跑起来
+setTimeout(function(){
+  var l = document.getElementById('loading');
+  if (!l || l.classList.contains('gone')) return;
+  l.classList.add('gone');
+  if (l.parentNode) l.parentNode.removeChild(l);
+  window.__loadingActive = false;
+  if (window.__healthStart) window.__healthStart();
+}, 20000);
+// 忠告：从"加载条应该已经走完"之后再留 14 秒
+setTimeout(function(){
+  var h = document.getElementById('health');
+  if (window.__healthStart && !window.__healthStarted) window.__healthStart();
+  if (h && !h.classList.contains('gone')) h.classList.add('gone');
+  if (window.__healthOpen) window.__healthOpen = false;
+}, 26000);
+setTimeout(function(){
+  var o = document.getElementById('opening');
+  var m = document.getElementById('menu');
+  if (window.__opFinished || !o || !m) return;
+  if (o.classList.contains('folding')) return;
+  m.classList.remove('hidden');
+  if (o.parentNode) o.parentNode.removeChild(o);
+}, 30000);
+</script>
+<!-- 全局版本号 -->
+<div class="app-version">
+  <button id="verlog-btn" class="verlog-link" type="button">更新日志</button>
+  <span class="ver-sep">·</span><span>v1.3.4</span>
+</div>
+</body>
+</html>
