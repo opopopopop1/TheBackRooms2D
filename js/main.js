@@ -480,6 +480,12 @@
     } catch (e) { /* 忽略 */ }
     const map = generateMap(g.level);
     g.map = map;
+    // 创意工坊：Mod 给这个层级登记的区域名，直接贴到地图上（只影响显示的区域名）
+    try {
+      const modAreas = window.BackroomsMod && window.BackroomsMod.__areasFor
+        ? window.BackroomsMod.__areasFor(g.level) : null;
+      if (modAreas && modAreas.length && g.map) g.map.areas = modAreas.slice();
+    } catch (e) { /* 忽略 */ }
     // 野生迁跃浆果：只长在 Level 4 / 5 / 10 / 11（11 是小概率的一盒）
     try { dropWarpBerry(map, g.level); } catch (e) { /* 忽略 */ }
     // 赫尔墨斯装置的包裹：落地的就是订购时填的那一层，就在这儿交货。
@@ -517,6 +523,12 @@
     g.nearItem = null;
     g.nearCrate = null;
     g.reading = null;
+    // 创意工坊：把"进入层级"广播给订阅过的 Mod（玩家位置、实体列表此时都已就位）
+    try {
+      if (window.BackroomsMod && window.BackroomsMod.__emit) {
+        window.BackroomsMod.__emit("level-enter", { level: g.level, floor: g.floor | 0 });
+      }
+    } catch (e) { /* 忽略 */ }
     g.spawnTimer = rand(5, 9);
     g.debris = [];
     g.steamPuffs = [];
@@ -9218,6 +9230,13 @@
       // 现在补进来，并和上面那些一样用地图上的样子当图标。
       "memoryjuice", "choc", "soda", "hotchoc", "wintercoat", "spacedrink",
       "memoryjar", "coldsuit", "energybar"];
+    // 创意工坊 Mod 注册的道具：按注册顺序排在最后（每件占一格，不叠加）
+    try {
+      const modKeys = window.__MOD_ITEM_KEYS || [];
+      for (const mk of modKeys) {
+        if (ITEMS[mk] && order.indexOf(mk) < 0) order.push(mk);
+      }
+    } catch (e) { /* 忽略 */ }
     const pool = bagPool();
     for (const key of order) {
       const n = pool[key] | 0;
@@ -9518,6 +9537,29 @@
     }
     // 冬装衣物：穿上之后能挡住 Level 20 的低温一阵子
     if (key === "wintercoat") return wearWinter20();
+    // 创意工坊 Mod 道具：只有注册时带了 onUse 的才"能用"，否则和其它装备一样只提示
+    const modDef = window.BackroomsMod && window.BackroomsMod.__modItem
+      ? window.BackroomsMod.__modItem(key) : null;
+    if (modDef && typeof modDef.onUse === "function") {
+      let used = false;
+      try {
+        used = modDef.onUse({
+          key: key,
+          api: window.BackroomsMod,
+          state: window.BackroomsMod.getState(),
+        });
+      } catch (e) {
+        console.error("[workshop:item]", e);
+        toast("这件模组道具出了点问题 —— 已经在控制台里记下了");
+      }
+      // 注册时声明了 consume 的，成功用掉一个就扣一个
+      if (used && modDef.consume) {
+        g.inv[key] = (g.inv[key] | 0) - 1;
+        if (g.inv[key] <= 0) delete g.inv[key];
+      }
+      updateBag(); updateHud(); renderHotbar();
+      return !!used;
+    }
     // 工具 / 装备：拿在手上就行，没有"使用"动作
     toast(ITEMS[key].name + " —— 拿在手上就会生效。");
     return false;
@@ -14996,6 +15038,17 @@
 
   function showDead() {
     const g = game;
+    // 创意工坊：死亡（结算界面出现）时通知 Mod
+    try {
+      if (window.BackroomsMod && window.BackroomsMod.__emit) {
+        window.BackroomsMod.__emit("player-death", {
+          level: g.level,
+          floor: g.floor | 0,
+          cause: g.deathCause || "",
+          killer: g.killerName || "",
+        });
+      }
+    } catch (e) { /* 忽略 */ }
     // 录像途中被实体吃掉 -> 最后一帧写「M.E.G录像带结束」，然后收进视频档案
     try { if (window.CamRec) CamRec.onDeath(g); } catch (e) { /* 忽略 */ }
     try { if (window.DigiCam) DigiCam.onDeath(g); } catch (e) { /* 忽略 */ }
@@ -22674,6 +22727,12 @@
     show(el.staminaBar);
     show(el.vitals);
     createGame();
+    // 创意工坊：一局真正开始（新档）时通知 Mod
+    try {
+      if (window.BackroomsMod && window.BackroomsMod.__emit) {
+        window.BackroomsMod.__emit("game-start", { level: game ? game.level : null, ai: pendingAI });
+      }
+    } catch (e) { /* 忽略 */ }
     renderHotbar();            // 副手槽跟着这一刷新显示，开局就看得见自带的摄像机
     showFlashToast();
     // 开局即建/更新当前存档 —— 不用再回到主菜单手动点保存
@@ -23865,15 +23924,77 @@
     }
   }
   let loopErrors = 0;
-  requestAnimationFrame(loop);
 
-  // 告诉 index.html 里的加载进度条：脚本全部就位、界面也初始化好了，可以进忠告了。
-  // 必须放在最后 —— 这是最后一个脚本之前的收尾，前面所有层级、界面都注册完了。
-  // 万一前面抛错没走到这一行，进度条那边的 30 秒兜底会自己放行，不会卡住。
+  // ===========================================================
+  // 创意工坊：给 Mod API 的内部桥（只有注册函数和这里用它，不对外暴露游戏对象）
+  // ===========================================================
   try {
-    window.__gameReady = true;
-    // 直接通知进度条收尾，不等它下一轮轮询 —— 脚本一多，轮询间隔会被
-    // 主线程阻塞拉长，等它自己发现要晚好几百毫秒。
-    if (window.__loadFinish) window.__loadFinish();
+    window.__MOD_BRIDGE = {
+      getGame: function () { return game; },
+      addItem: function (key, n) { try { addItem(key, n); updateBag(); updateHud(); renderHotbar(); return true; } catch (e) { return false; } },
+      spawn: function (kind) {
+        if (!game || !game.map) return false;
+        try {
+          if (spawnEntityAt(game, kind, null)) return true;
+          return false;
+        } catch (e) { return false; }
+      },
+      goToLevel: function (lv) {
+        if (!game) return false;
+        try { goToLevel(game, lv, "模组传送", ""); return true; } catch (e) { return false; }
+      },
+      toast: function (msg) { try { toast(msg); return true; } catch (e) { return false; } },
+    };
   } catch (e) { /* 忽略 */ }
+
+  // ===========================================================
+  // 启动顺序（VibeHub 创意工坊规范）
+  //   1. 脚本已全部就位，BackroomsMod 已暴露（js/workshop.js）
+  //   2. 等 before-start Mod 全部装载（它们此时才执行 register*，写进登记表）
+  //   3. 应用登记表 → 启动主循环
+  //   4. markGameReady() → 平台开始装载 after-start Mod
+  //   5. 等 afterStart 结束（after-start Mod 的注册会立即生效）
+  // 不在平台 iframe 里时，loader 会立刻放行两个 Promise，行为与原来一致。
+  // ===========================================================
+  function vibehubWorkshopBoot() {
+    const WS = window.VibeHubWorkshop;
+    const Mod = window.BackroomsMod;
+    let started = false;
+
+    function startEngine() {
+      if (started) return;
+      started = true;
+      // 把 Mod 的注册（层级 / 区域 / 道具 / 实体 / 数值）写进真实数据结构
+      if (Mod && typeof Mod.__applyAll === "function") {
+        try { Mod.__applyAll(); } catch (e) { console.error("[workshop:apply]", e); }
+      }
+      requestAnimationFrame(loop);
+      // 告诉 index.html 里的加载进度条：脚本全部就位、界面也初始化好了，可以进忠告了。
+      try {
+        window.__gameReady = true;
+        if (window.__loadFinish) window.__loadFinish();
+      } catch (e) { /* 忽略 */ }
+      // 游戏已正式启动 —— 此时才允许平台装载 after-start Mod
+      if (WS && typeof WS.markGameReady === "function") {
+        try { WS.markGameReady(); } catch (e) { /* 忽略 */ }
+      }
+      if (Mod && typeof Mod.__emit === "function") {
+        try { Mod.__emit("mods-ready", { mods: (WS && WS.mods) ? WS.mods.length : 0 }); } catch (e) { /* 忽略 */ }
+      }
+      const after = WS && WS.afterStart;
+      if (after && typeof after.then === "function") {
+        try { after.then(function () { /* after-start Mod 已装载完毕 */ }, function () { /* 忽略 */ }); } catch (e) { /* 忽略 */ }
+      }
+    }
+
+    const before = WS && WS.beforeStart;
+    if (!before || typeof before.then !== "function") { startEngine(); return; }
+    try {
+      before.then(startEngine, startEngine);
+    } catch (e) { startEngine(); }
+    // 兜底：平台迟迟没回 Mod 列表时也必须进主菜单，绝不停在黑屏上
+    setTimeout(startEngine, 10000);
+  }
+
+  vibehubWorkshopBoot();
 })();

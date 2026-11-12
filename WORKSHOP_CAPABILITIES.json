@@ -1,0 +1,68 @@
+[
+  {
+    "id": "level.add",
+    "name": "新增层级",
+    "description": "用 registerLevel 注册 100 以上的数字层级：只能设置边长、怪物池、档案文案、区域名与种子，地图由内置管道模板生成；不能替换地图生成算法、不能修改内置层级。",
+    "multiplayer": "blocked"
+  },
+  {
+    "id": "level.area",
+    "name": "层级区域命名",
+    "description": "用 registerArea 给已有层级或自己注册的层级追加区域名，只影响楼层信息的显示文本；不能改变房间布局或区域判定逻辑。",
+    "multiplayer": "local"
+  },
+  {
+    "id": "item.add",
+    "name": "新增道具",
+    "description": "用 registerItem 注册可拾取、可发放的道具（名称、说明、堆叠上限）；图标沿用通用样式，不能自带绘制代码，不能定义新存档结构。",
+    "multiplayer": "blocked"
+  },
+  {
+    "id": "item.use",
+    "name": "道具使用回调",
+    "description": "注册道具时提供 onUse 回调，玩家使用该道具时触发；回调里只能调用公开 API（提示、音效、发放道具、切层），不能直接改动背包以外的游戏内部状态。",
+    "multiplayer": "blocked"
+  },
+  {
+    "id": "entity.add",
+    "name": "新增实体种类",
+    "description": "用 registerEntityKind 注册怪物：可调半径、速度、视野、丢失时间、刷新时长与是否无害，外观只能沿用内置模型；不能自定义绘制、不能接管 AI 状态机。",
+    "multiplayer": "blocked"
+  },
+  {
+    "id": "entity.spawn",
+    "name": "运行时生成实体",
+    "description": "用 spawnEntity 在当前层级刷出已注册的实体，位置由游戏挑选；不能指定任意坐标批量刷怪，不能操控已有实体的追击与伤害逻辑。",
+    "multiplayer": "blocked"
+  },
+  {
+    "id": "stat.tune",
+    "name": "数值调整",
+    "description": "用 tune 修改白名单内的数值（移动速度、体力、血量上限、理智流失、杏仁水回复、背包容量），超出范围会被夹到边界；不能修改未列出的配置项。",
+    "multiplayer": "blocked"
+  },
+  {
+    "id": "ui.toast",
+    "name": "提示条文案",
+    "description": "用 toast 在屏幕下方显示一行提示；不能创建自定义面板、按钮或修改现有界面结构。",
+    "multiplayer": "local"
+  },
+  {
+    "id": "audio.sfx",
+    "name": "播放内置音效",
+    "description": "用 playSfx 播放白名单里的内置一次性音效；不能替换背景音乐、不能加载包外音频、不能调整全局音量设置。",
+    "multiplayer": "local"
+  },
+  {
+    "id": "state.read",
+    "name": "读取游戏状态",
+    "description": "用 getState / isMultiplayer 读取阶段、层级、楼层、生命、理智、玩家坐标与实体数量；只读，不能写入或回滚游戏状态。",
+    "multiplayer": "local"
+  },
+  {
+    "id": "event.subscribe",
+    "name": "订阅游戏事件",
+    "description": "用 on 订阅 game-start、level-enter、player-death、mods-ready 事件并按顺序回调；回调抛错只影响自己，不能拦截或取消游戏流程。",
+    "multiplayer": "local"
+  }
+]
