@@ -1,1 +1,9 @@
-{"schema":"vibehub-project-v1","baseUrl":"","projectSlug":"cFD0sATs"}
+{
+  "schema": "vibehub-repository-v1",
+  "repositoryId": "1452785083",
+  "bindingId": "24IlO1sQ0kmOwIUFD63Fc",
+  "challenge": "UY7Pxo0CztQypAwnH5Yh1Wx26Psedwku",
+  "verification": "5bc5d63fa7a2f3cd86124b0166fb1bcd2415bef1f9e7ac6e3467264302e7cb40",
+  "collaborationTermsVersion": "2026-08-02",
+  "licenseFile": "VIBEHUB-COLLABORATION-LICENSE.md"
+}
