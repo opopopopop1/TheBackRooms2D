@@ -1105,6 +1105,19 @@
   };
 
   function startMultiGame(done) {
+    // 创意工坊：本作声明 mods-disabled —— 只要启用了任何 Mod，联机就不许开局
+    try {
+      const ws = window.VibeHubWorkshop;
+      const mods = ws && typeof ws.getEnabledMods === "function" ? ws.getEnabledMods() : [];
+      if (mods.length) {
+        const er = $("lb-room-err");
+        if (er) er.textContent = "已启用创意工坊模组 —— 本作联机需要先关闭全部模组（共 "
+          + mods.length + " 个）";
+        const nt = window.__mpNotice;
+        if (typeof nt === "function") nt("联机不可用：请先关闭创意工坊模组");
+        return;
+      }
+    } catch (e) { /* 忽略 */ }
     applyOptsToGame();                    // 房主选的难度 / 写实，开局这一刻落地
     // 不能再用 pmSolo.click() 了 —— 现在它会先弹出难度面板，
     // 联机的人就卡在那儿进不去游戏（window.__game 一直是 null）。

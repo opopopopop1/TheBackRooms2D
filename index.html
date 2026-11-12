@@ -1470,10 +1470,16 @@ html, body { overscroll-behavior: none; scrollbar-width: none; }
 
 <!-- VibeHub SDK v3 —— 网络联机用。必须是【绝对地址】：游戏跑在 vibeapps 域，写相对路径会 404（规范红线） -->
 <script src="https://gamesvibe.app/sdk/v3/vibehub.js"></script>
+<!-- VibeHub 创意工坊加载器 —— 必须在游戏脚本之前：它会在平台 iframe 里接收已启用的 Mod 列表，
+     暴露 window.VibeHubWorkshop（beforeStart / afterStart / markGameReady）。 -->
+<script src="https://gamesvibe.app/workshop/loader/v1.js"></script>
 <script src="js/config.js?v=202"></script>
 <script src="js/cloud.js?v=202"></script>
 <script src="js/constants.js?v=202"></script>
 <script src="js/audio.js?v=202"></script>
+<!-- 创意工坊 Mod API —— 只建立并暴露接口（注册表 + 事件），不启动游戏。
+     真正的写入与启动顺序在 main.js 末尾：等 beforeStart → 应用注册 → 起主循环 → markGameReady。 -->
+<script src="js/workshop.js?v=203"></script>
 <!-- 层级建筑布局（固定坐标 + 生成种子） -->
 <script src="js/level/levelExitDoor.js?v=202"></script>
 <script src="js/level/level0.js?v=202"></script>
@@ -1596,8 +1602,8 @@ html, body { overscroll-behavior: none; scrollbar-width: none; }
 <script src="js/entities.js?v=202"></script>
 <script src="js/ai.js?v=202"></script>
 <script src="js/net.js?v=202"></script>
-<script src="js/lobby.js?v=202"></script>
-<script src="js/main.js?v=202"></script>
+<script src="js/lobby.js?v=203"></script>
+<script src="js/main.js?v=203"></script>
 <script src="js/opening.js?v=202"></script>
 <script>
 /* 最后一道保险：不管前面哪一环卡住（加载条、忠告、开屏），一定放行到主菜单，
