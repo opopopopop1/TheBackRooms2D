@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23d9c95e'/%3E%3Crect x='8' y='8' width='16' height='16' fill='%230a0a05'/%3E%3C/svg%3E">
 <title>后室 - The Backrooms 逃生</title>
-<link rel="stylesheet" href="css/style.css?v=202">
+<link rel="stylesheet" href="css/style.css?v=235">
 <style>
 /* ---------- 加载进度：进游戏的第一个画面，走完才轮到健康忠告 ---------- */
 #loading{position:fixed;inset:0;z-index:100001;
@@ -1104,7 +1104,7 @@ html, body { overscroll-behavior: none; scrollbar-width: none; }
 
 <!-- 开始菜单：背景图铺满整个界面 + 毛玻璃按钮（1.3.4） -->
 <div id="menu" class="overlay hidden">
-  <!-- 背景图铺满整个界面：底层模糊填满边角，上层完整显示、绝不裁掉玩家自己放的那张图。
+  <!-- 背景图两层都按 cover 铺满四边，任何窗口比例都不留模糊压暗的边。
        包里不带任何默认背景图；玩家把 menu-bg.jpg 放进 img/ 才会显示，缺图时只用 CSS 底色。 -->
   <img id="menu-bg-fill" class="menu-bgfill" src="img/menu-bg.jpg" alt=""
        onerror="this.style.display='none'">
@@ -1129,7 +1129,7 @@ html, body { overscroll-behavior: none; scrollbar-width: none; }
 
   <!-- 标题：左上角，与按钮组彻底分开（独立定位，不随按钮移动） -->
   <div class="menu-head">
-    <h1 class="menu-title">BACKROOMS<span class="ver-badge">1.3.4</span></h1>
+    <h1 class="menu-title">BACKROOMS<span class="ver-badge">1.3.6</span></h1>
     <div class="menu-sub">俯视</div>
     <div class="menu-gamename">后室 | 无人抵达</div>
     <div id="online-box" class="online-box"><span class="dot"></span><span id="online-n">—</span> 人正在后室里</div>
@@ -1214,7 +1214,7 @@ html, body { overscroll-behavior: none; scrollbar-width: none; }
       <button id="guide-copy" class="gh-btn" type="button">复制网址</button>
       <button id="guide-retry" class="gh-btn" type="button">刷新内容</button>
       <button id="guide-width" class="gh-btn" type="button">页面宽度：1200</button>
-      <button id="guide-wiki" class="gh-btn" type="button">切换：中文维基</button>
+      <button id="guide-wiki" class="gh-btn" type="button">新标签打开：中文维基</button>
       <button id="guide-close" class="gh-btn" type="button">关闭（Esc）</button>
     </div>
     <div id="guide-box" class="guide-box">
@@ -1222,7 +1222,7 @@ html, body { overscroll-behavior: none; scrollbar-width: none; }
       <div id="guide-fallback" class="guide-fallback hidden">
         <p class="gf-t">站点暂时没加载出来</p>
         <p class="gf-u">www.tutorial.thebackrooms2d.de5.net</p>
-        <p class="gf-s">这里不缓存站点内容，免得你看到的是几个月前的旧版本。<br>点「刷新内容」重连，或「复制网址」到浏览器里看。</p>
+        <p class="gf-s">这里不缓存站点内容，免得你看到的是几个月前的旧版本。<br>点「刷新内容」重连，或「复制网址」到浏览器里看。<br>中文维基不允许嵌套显示，请点上方「新标签打开：中文维基」。</p>
       </div>
     </div>
   </div>
@@ -1473,138 +1473,152 @@ html, body { overscroll-behavior: none; scrollbar-width: none; }
 <!-- VibeHub 创意工坊加载器 —— 必须在游戏脚本之前：它会在平台 iframe 里接收已启用的 Mod 列表，
      暴露 window.VibeHubWorkshop（beforeStart / afterStart / markGameReady）。 -->
 <script src="https://gamesvibe.app/workshop/loader/v1.js"></script>
-<script src="js/config.js?v=202"></script>
-<script src="js/cloud.js?v=202"></script>
-<script src="js/constants.js?v=202"></script>
-<script src="js/audio.js?v=202"></script>
+<script src="js/fullscreenPrompt.js?v=235"></script>
+<script src="js/config.js?v=235"></script>
+<script src="js/cloud.js?v=235"></script>
+<script src="js/constants.js?v=235"></script>
+<script src="js/audio.js?v=235"></script>
+<!-- 工坊资源层 —— 本地文件贴图、自定义层级音轨、子层级门。
+     必须在 workshop.js 之前加载：注册函数会把资源登记到这一层。 -->
+<script src="js/modkit.js?v=235"></script>
 <!-- 创意工坊 Mod API —— 只建立并暴露接口（注册表 + 事件），不启动游戏。
      真正的写入与启动顺序在 main.js 末尾：等 beforeStart → 应用注册 → 起主循环 → markGameReady。 -->
-<script src="js/workshop.js?v=203"></script>
+<script src="js/workshop.js?v=235"></script>
 <!-- 层级建筑布局（固定坐标 + 生成种子） -->
-<script src="js/level/levelExitDoor.js?v=202"></script>
-<script src="js/level/level0.js?v=202"></script>
-<script src="js/level/level0.2.js?v=202"></script>
-<script src="js/level/level0.3.js?v=202"></script>
-<script src="js/level/level1.js?v=202"></script>
-<script src="js/level/level1.1.js?v=202"></script>
-<script src="js/level/level1.2.js?v=202"></script>
-<script src="js/level/level1.3.js?v=202"></script>
-<script src="js/level/level1.5.js?v=202"></script>
-<script src="js/level/level2.js?v=202"></script>
-<script src="js/level/level2.1.js?v=202"></script>
-<script src="js/level/level3.js?v=202"></script>
-<script src="js/level/level3.5.js?v=202"></script>
-<script src="js/level/level4.js?v=202"></script>
-<script src="js/level/level5.js?v=202"></script>
-<script src="js/level/level6.js?v=202"></script>
-<script src="js/level/level7.js?v=202"></script>
-<script src="js/level/level8.js?v=202"></script>
-<script src="js/level/level9.js?v=202"></script>
-<script src="js/level/level10.js?v=202"></script>
-<script src="js/level/level11.js?v=202"></script>
-<script src="js/level/level11newera.js?v=202"></script>
-<script src="js/level/level11hospital.js?v=202"></script>
-<script src="js/level/level13.js?v=202"></script>
-<script src="js/level/level15.js?v=202"></script>
-<script src="js/level/level15.1.js?v=202"></script>
-<script src="js/level/level21.js?v=202"></script>
-<script src="js/level/level26.js?v=202"></script>
-<script src="js/level/level70.js?v=202"></script>
-<script src="js/level/levelhub.js?v=202"></script>
-<script src="js/level/levelNew.js?v=202"></script>
-<script src="js/level/level25.js?v=202"></script>
-<script src="js/level/level37.js?v=202"></script>
-<script src="js/level/level601.js?v=202"></script>
-<script src="js/level/level363.js?v=202"></script>
-<script src="js/level/levelShattered.js?v=202"></script>
-<script src="js/level/level994.js?v=202"></script>
-<script src="js/level/level9223372036854775807.js?v=202"></script>
-<script src="js/level/level9223372036854775807.-1.js?v=202"></script>
-<script src="js/level/levelBatch.js?v=202"></script>
-<script src="js/level/level6.1.js?v=202"></script>
-<script src="js/level/level10.1.js?v=202"></script>
-<script src="js/level/level5.2.js?v=202"></script>
-<script src="js/level/level5.3.js?v=202"></script>
-<script src="js/level/level6.2.js?v=202"></script>
-<script src="js/level/level11.3.js?v=202"></script>
-<script src="js/level/level12.js?v=202"></script>
-<script src="js/level/level17.js?v=202"></script>
-<script src="js/level/level171.js?v=202"></script>
-<script src="js/level/level49.js?v=202"></script>
-<script src="js/level/level49.1.js?v=202"></script>
-<script src="js/level/level71.js?v=202"></script>
-<script src="js/level/level109.js?v=202"></script>
-<script src="js/level/level119.js?v=202"></script>
-<script src="js/level/level287.js?v=202"></script>
-<script src="js/level/level20.js?v=202"></script>
-<script src="js/level/level20game.js?v=202"></script>
-<script src="js/level/level289.js?v=202"></script>
-<script src="js/level/level22.js?v=202"></script>
-<script src="js/level/level33.js?v=202"></script>
-<script src="js/level/level67.js?v=202"></script>
-<script src="js/level/level31.js?v=202"></script>
-<script src="js/level/level40.js?v=202"></script>
-<script src="js/level/level94.js?v=202"></script>
-<script src="js/level/level45.js?v=202"></script>
-<script src="js/level/level78.js?v=202"></script>
-<script src="js/level/level599.js?v=202"></script>
-<script src="js/level/level14h.js?v=202"></script>
-<script src="js/level/level696.js?v=202"></script>
-<script src="js/level/level30.js?v=202"></script>
-<script src="js/level/level301.js?v=202"></script>
-<script src="js/level/level484.js?v=202"></script>
-<script src="js/level/level485.js?v=202"></script>
-<script src="js/level/level486.js?v=202"></script>
-<script src="js/level/level512.js?v=202"></script>
-<script src="js/level/level666.js?v=202"></script>
-<script src="js/level/level790.js?v=202"></script>
-<script src="js/level/level36.js?v=202"></script>
-<script src="js/level/level36.1.js?v=202"></script>
-<script src="js/level/level900.js?v=202"></script>
-<script src="js/level/level998.js?v=202"></script>
-<script src="js/level/level974.js?v=202"></script>
-<script src="js/level/level999.js?v=202"></script>
-<script src="js/level/level1000.js?v=202"></script>
-<script src="js/level/levelAnse.js?v=202"></script>
-<script src="js/level/levelBang.js?v=202"></script>
-<script src="js/level/levelExclam.js?v=202"></script>
-<script src="js/level/levelBlueChannel.js?v=202"></script>
-<script src="js/level/level0traproof.js?v=202"></script>
-<script src="js/level/level0.1.js?v=202"></script>
-<script src="js/level/level0.7.js?v=202"></script>
-<script src="js/level/levelRedRooms.js?v=202"></script>
-<script src="js/level/level29.js?v=202"></script>
-<script src="js/level/level284.js?v=202"></script>
-<script src="js/level/level27.js?v=202"></script>
-<script src="js/level/level28.js?v=202"></script>
-<script src="js/level/level0pain.js?v=202"></script>
-<script src="js/level/level24.js?v=202"></script>
-<script src="js/level/level56.js?v=202"></script>
-<script src="js/level/level57.js?v=202"></script>
-<script src="js/level/level1merchant.js?v=202"></script>
-<script src="js/level/level601fake.js?v=202"></script>
-<script src="js/level/levelBatch2Common.js?v=202"></script>
-<script src="js/level/level51.js?v=202"></script>
-<script src="js/level/level39.js?v=202"></script>
-<script src="js/level/level63.js?v=202"></script>
-<script src="js/level/level797.js?v=202"></script>
-<script src="js/level/level46.js?v=202"></script>
-<script src="js/level/level23_32.js?v=202"></script>
-<script src="js/level/level38_43_34.js?v=202"></script>
-<script src="js/level/level903_904_834.js?v=202"></script>
-<script src="js/level/level75_16.js?v=202"></script>
-<script src="js/level/levelKey.js?v=202"></script>
-<script src="js/level/level0.5.js?v=202"></script>
-<script src="js/map.js?v=202"></script>
-<script src="js/archive.js?v=202"></script>
-<script src="js/camera.js?v=202"></script>
-<script src="js/level/digitalCamera.js?v=202"></script>
-<script src="js/entities.js?v=202"></script>
-<script src="js/ai.js?v=202"></script>
-<script src="js/net.js?v=202"></script>
-<script src="js/lobby.js?v=203"></script>
-<script src="js/main.js?v=203"></script>
-<script src="js/opening.js?v=202"></script>
+<script src="js/level/level_common/levelExitDoor.js?v=235"></script>
+<script src="js/level/level_1_10/level0.js?v=235"></script>
+<script src="js/level/level_1_10/level0.2.js?v=235"></script>
+<script src="js/level/level_1_10/level0.3.js?v=235"></script>
+<script src="js/level/level_1_10/level1.js?v=235"></script>
+<script src="js/level/level_1_10/level1.1.js?v=235"></script>
+<script src="js/level/level_1_10/level1.2.js?v=235"></script>
+<script src="js/level/level_1_10/level1.3.js?v=235"></script>
+<script src="js/level/level_1_10/level1.5.js?v=235"></script>
+<script src="js/level/level_1_10/level2.js?v=235"></script>
+<script src="js/level/level_1_10/level2.1.js?v=235"></script>
+<script src="js/level/level_1_10/level3.js?v=235"></script>
+<script src="js/level/level_1_10/level3.5.js?v=235"></script>
+<script src="js/level/level_1_10/level4.js?v=235"></script>
+<script src="js/level/level_1_10/level5.js?v=235"></script>
+<script src="js/level/level_1_10/level6.js?v=235"></script>
+<script src="js/level/level_1_10/level7.js?v=235"></script>
+<script src="js/level/level_1_10/level8.js?v=235"></script>
+<script src="js/level/level_1_10/level9.js?v=235"></script>
+<script src="js/level/level_1_10/level10.js?v=235"></script>
+<script src="js/level/level_11_20/level11.js?v=235"></script>
+<script src="js/level/level_11_20/level11newera.js?v=235"></script>
+<script src="js/level/level_11_20/level11hospital.js?v=235"></script>
+<script src="js/level/level_11_20/level13.js?v=235"></script>
+<script src="js/level/level_11_20/level15.js?v=235"></script>
+<script src="js/level/level_11_20/level15.1.js?v=235"></script>
+<script src="js/level/level_21_30/level21.js?v=235"></script>
+<script src="js/level/level_21_30/level26.js?v=235"></script>
+<script src="js/level/level_61_70/level70.js?v=235"></script>
+<script src="js/level/level_common/levelhub.js?v=235"></script>
+<script src="js/level/level_common/levelNew.js?v=235"></script>
+<script src="js/level/level_21_30/level25.js?v=235"></script>
+<script src="js/level/level_31_40/level37.js?v=235"></script>
+<script src="js/level/level_601_610/level601.js?v=235"></script>
+<script src="js/level/level_361_370/level363.js?v=235"></script>
+<script src="js/level/level_common/levelShattered.js?v=235"></script>
+<script src="js/level/level_991_1000/level994.js?v=235"></script>
+<script src="js/level/level_1000_plus/level9223372036854775807.js?v=235"></script>
+<script src="js/level/level_1000_plus/level9223372036854775807.-1.js?v=235"></script>
+<script src="js/level/level_common/levelBatch.js?v=235"></script>
+<script src="js/level/level_1_10/level6.1.js?v=235"></script>
+<script src="js/level/level_1_10/level10.1.js?v=235"></script>
+<script src="js/level/level_1_10/level5.2.js?v=235"></script>
+<script src="js/level/level_1_10/level5.3.js?v=235"></script>
+<script src="js/level/level_1_10/level6.2.js?v=235"></script>
+<script src="js/level/level_11_20/level11.3.js?v=235"></script>
+<script src="js/level/level_11_20/level12.js?v=235"></script>
+<script src="js/level/level_11_20/level17.js?v=235"></script>
+<script src="js/level/level_171_180/level171.js?v=235"></script>
+<script src="js/level/level_41_50/level49.js?v=235"></script>
+<script src="js/level/level_41_50/level49.1.js?v=235"></script>
+<script src="js/level/level_71_80/level71.js?v=235"></script>
+<script src="js/level/level_101_110/level109.js?v=235"></script>
+<script src="js/level/level_111_120/level119.js?v=235"></script>
+<script src="js/level/level_281_290/level287.js?v=235"></script>
+<script src="js/level/level_11_20/level20.js?v=235"></script>
+<script src="js/level/level_11_20/level20game.js?v=235"></script>
+<script src="js/level/level_281_290/level289.js?v=235"></script>
+<script src="js/level/level_21_30/level22.js?v=235"></script>
+<script src="js/level/level_31_40/level33.js?v=235"></script>
+<script src="js/level/level_61_70/level67.js?v=235"></script>
+<script src="js/level/level_31_40/level31.js?v=235"></script>
+<script src="js/level/level_31_40/level40.js?v=235"></script>
+<script src="js/level/level_91_100/level94.js?v=235"></script>
+<script src="js/level/level_41_50/level45.js?v=235"></script>
+<script src="js/level/level_71_80/level78.js?v=235"></script>
+<script src="js/level/level_591_600/level599.js?v=235"></script>
+<script src="js/level/level_11_20/level14h.js?v=235"></script>
+<script src="js/level/level_691_700/level696.js?v=235"></script>
+<script src="js/level/level_21_30/level30.js?v=235"></script>
+<script src="js/level/level_301_310/level301.js?v=235"></script>
+<script src="js/level/level_481_490/level484.js?v=235"></script>
+<script src="js/level/level_481_490/level485.js?v=235"></script>
+<script src="js/level/level_481_490/level486.js?v=235"></script>
+<script src="js/level/level_511_520/level512.js?v=235"></script>
+<script src="js/level/level_661_670/level666.js?v=235"></script>
+<script src="js/level/level_781_790/level790.js?v=235"></script>
+<script src="js/level/level_31_40/level36.js?v=235"></script>
+<script src="js/level/level_31_40/level36.1.js?v=235"></script>
+<script src="js/level/level_891_900/level900.js?v=235"></script>
+<script src="js/level/level_991_1000/level998.js?v=235"></script>
+<script src="js/level/level_971_980/level974.js?v=235"></script>
+<script src="js/level/level_991_1000/level999.js?v=235"></script>
+<script src="js/level/level_1000_plus/level1000.js?v=235"></script>
+<script src="js/level/level_common/levelAnse.js?v=235"></script>
+<script src="js/level/level_common/levelBang.js?v=235"></script>
+<script src="js/level/level_common/levelExclam.js?v=235"></script>
+<script src="js/level/level_common/levelBlueChannel.js?v=235"></script>
+<script src="js/level/level_1_10/level0traproof.js?v=235"></script>
+<script src="js/level/level_1_10/level0.1.js?v=235"></script>
+<script src="js/level/level_1_10/level0.7.js?v=235"></script>
+<script src="js/level/level_common/levelRedRooms.js?v=235"></script>
+<script src="js/level/level_21_30/level29.js?v=235"></script>
+<script src="js/level/level_281_290/level284.js?v=235"></script>
+<script src="js/level/level_21_30/level27.js?v=235"></script>
+<script src="js/level/level_21_30/level28.js?v=235"></script>
+<script src="js/level/level_1_10/level0pain.js?v=235"></script>
+<script src="js/level/level_21_30/level24.js?v=235"></script>
+<script src="js/level/level_51_60/level56.js?v=235"></script>
+<script src="js/level/level_51_60/level57.js?v=235"></script>
+<script src="js/level/level_1_10/level1merchant.js?v=235"></script>
+<script src="js/level/level_601_610/level601fake.js?v=235"></script>
+<script src="js/level/level_common/levelBatch2Common.js?v=235"></script>
+<script src="js/level/level_51_60/level51.js?v=235"></script>
+<script src="js/level/level_31_40/level39.js?v=235"></script>
+<script src="js/level/level_61_70/level63.js?v=235"></script>
+<script src="js/level/level_791_800/level797.js?v=235"></script>
+<script src="js/level/level_41_50/level46.js?v=235"></script>
+<script src="js/level/level_21_30/level23_32.js?v=235"></script>
+<script src="js/level/level_31_40/level38_43_34.js?v=235"></script>
+<script src="js/level/level_901_910/level903_904_834.js?v=235"></script>
+<script src="js/level/level_71_80/level75_16.js?v=235"></script>
+<script src="js/level/level_common/levelKey.js?v=235"></script>
+<script src="js/level/level_1_10/level0.5.js?v=235"></script>
+<script src="js/level/level_901_910/level909.js?v=235"></script>
+<script src="js/level/level_331_340/level335.js?v=235"></script>
+<script src="js/level/level_131_140/level133.js?v=235"></script>
+<script src="js/level/level_31_40/level35.js?v=235"></script>
+<script src="js/level/level_1_10/level6.3.js?v=235"></script>
+<script src="js/level/level_1_10/level6.31.js?v=235"></script>
+<script src="js/level/level_common/megPass.js?v=235"></script>
+<script src="js/level/level_common/megAlpha.js?v=235"></script>
+  <script src="js/level/level_11_20/level11Buildings.js?v=235"></script>
+<script src="js/map.js?v=235"></script>
+<script src="js/archive.js?v=235"></script>
+<script src="js/camera.js?v=235"></script>
+<script src="js/level/level_common/digitalCamera.js?v=235"></script>
+<script src="js/entities.js?v=235"></script>
+<script src="js/ai.js?v=235"></script>
+<script src="js/net.js?v=235"></script>
+<script src="js/lobby.js?v=235"></script>
+<script src="js/level/level_common/glowGuide.js?v=235"></script>
+<script src="js/main.js?v=235"></script>
+<script src="js/opening.js?v=235"></script>
 <script>
 /* 最后一道保险：不管前面哪一环卡住（加载条、忠告、开屏），一定放行到主菜单，
    绝不让玩家卡在一块黑屏上。
@@ -1638,7 +1652,7 @@ setTimeout(function(){
 <!-- 全局版本号 -->
 <div class="app-version">
   <button id="verlog-btn" class="verlog-link" type="button">更新日志</button>
-  <span class="ver-sep">·</span><span>v1.3.4</span>
+  <span class="ver-sep">·</span><span>v1.3.6</span>
 </div>
 </body>
 </html>
